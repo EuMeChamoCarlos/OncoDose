@@ -8,8 +8,11 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/user")
@@ -38,6 +41,28 @@ public class UserController {
                         AuthenticatedUserResponse.fromUser(userAuthentication.getUser())
                 )
         );
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteMe(
+            @AuthenticationPrincipal CustomUserDetails userAuthentication
+    ) {
+        userService.deleteById(userAuthentication.getUser().getId());
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/{userId}")
+    public ResponseEntity<?> getUserById(@PathVariable UUID userId) {
+        ResponseDTO<?> response = new ResponseDTO<>(userService.getUserById(userId));
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID userId) {
+        userService.deleteById(userId);
+        return ResponseEntity.noContent().build();
     }
 
 

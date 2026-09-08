@@ -20,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -104,6 +105,27 @@ public class UserService {
                     HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
         }
     }
+
+    public User getUserById (UUID userId){
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Usuário não encontrado!"));
+    }
+
+    @Transactional
+    public void deleteById(UUID userId) {
+        if (!userRepository.existsById(userId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Usuário não encontrado!"
+            );
+        }
+
+        userRepository.deleteById(userId);
+    }
+
+
 
 //    public Optional<User> findById(UUID id) {
 //        return userRepository.findById(id);
