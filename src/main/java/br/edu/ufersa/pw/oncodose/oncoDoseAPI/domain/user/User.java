@@ -3,7 +3,7 @@ package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.auth.Auth;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.privilege.Privilege;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.Role;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.Profile.Profile;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.profile.Profile;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

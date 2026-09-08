@@ -1,4 +1,4 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.Profile;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.profile;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
