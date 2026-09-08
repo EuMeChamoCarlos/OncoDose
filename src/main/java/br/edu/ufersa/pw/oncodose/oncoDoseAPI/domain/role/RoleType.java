@@ -1,5 +1,8 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role;
 
+import lombok.Getter;
+
+@Getter
 public enum RoleType {
     ROLE_USER("USER"),
     ROLE_ADMIN("ADMIN");
