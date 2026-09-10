@@ -17,11 +17,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-
-import static br.edu.ufersa.pw.oncodose.oncoDoseAPI.security.SecurityFilter.BASE_URL;
 
 @NullMarked
 @Component
@@ -40,7 +40,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return !path.startsWith(BASE_URL);
+        return path.equals("/api/user/register")
+                || path.equals("/api/user/login")
+                || path.equals("/error");
     }
 
     @Override
@@ -55,29 +57,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
     
-        if (authorizationHeader != null && authorizationHeader.startsWith(PREFIX)) {
-            jwt = authorizationHeader.substring(7); // Remove "Bearer "
-            Claims claims = jwtValidator.validateTokenAndGetClaims(jwt);
-            username = claims.getSubject(); 
-        }
-    
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Claims claims = jwtValidator.validateTokenAndGetClaims(jwt);
-            String role = claims.get("ROLE", String.class);
-    
-            // Configurando as autoridades
-            String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-    
-            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(authority));
-    
-            // Configurando o contexto de autenticação
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        try {
+            if (authorizationHeader != null && authorizationHeader.startsWith(PREFIX)) {
+                jwt = authorizationHeader.substring(7); // Remove "Bearer "
+                Claims claims = jwtValidator.validateTokenAndGetClaims(jwt);
+                username = claims.getSubject();
 
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
-    
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                    String role = claims.get("ROLE", String.class);
+
+                    // Configurando o contexto de autenticação
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+
+                    // Configurando as autoridades
+                    List<GrantedAuthority> authorities = new ArrayList<>();
+                    if (role != null) {
+                        String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+                        authorities.add(new SimpleGrantedAuthority(authority));
+                    } else {
+                        authorities.addAll(userDetails.getAuthorities());
+                    }
+
+                    UsernamePasswordAuthenticationToken authToken =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+
+                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
+            }
+        } catch (JwtException e) {
+            SecurityContextHolder.clearContext();
         }
     
         chain.doFilter(request, response); // Próximo filtro
