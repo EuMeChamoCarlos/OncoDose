@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/medicamento")
+@RequestMapping("/api/medicamentos")
 @RequiredArgsConstructor
 public class MedicamentoController {
     private final MedicamentoService medicamentoService;
@@ -43,7 +43,7 @@ public class MedicamentoController {
     public ResponseEntity<ResponseDTO<?>> getByCodigoInterno(@PathVariable String codigoInterno) {
         ResponseDTO<?> response = new ResponseDTO<>(medicamentoService.getMedicamentoByCodigoInterno(codigoInterno));
         return ResponseEntity.ok(response);
-    }
+    }   
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{medicamentoId}")
