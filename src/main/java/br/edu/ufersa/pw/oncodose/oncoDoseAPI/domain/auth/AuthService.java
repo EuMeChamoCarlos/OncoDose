@@ -1,10 +1,11 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.auth;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -21,31 +22,23 @@ public class AuthService {
 
     public ResponseEntity<Auth> createAuth(String username, String rawPassword) {
         if (authRepository.existsByUsername(username)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Conflito, usuário já existe!");
+            throw new RecursoDuplicadoException("Auth", "username", username);
         }
 
         Auth auth = new Auth();
         auth.setUsername(username);
         auth.setPassword(passwordEncoder.encode(rawPassword)); // Codifica corretamente a senha
 
-        Auth savedAuth = authRepository.save(auth);
-        if (savedAuth != null) {
-            return new ResponseEntity<>(savedAuth, HttpStatus.CREATED);
-        } else {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro, criação de autenticação falhou!");
-        }
+        return new ResponseEntity<>(authRepository.save(auth), HttpStatus.CREATED);
     }
 
     // Atualizar a senha de um usuário
     public ResponseEntity<String> updatePassword(UUID authId, String rawPassword) {
         return authRepository.findById(authId).map(auth -> {
             auth.setPassword(passwordEncoder.encode(rawPassword)); // Codifica corretamente a senha
-            Auth updatedAuth = authRepository.save(auth);
-            if (updatedAuth != null){
-                return ResponseEntity.ok("Senha atualizada.");}
-            else{
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro na atualização da senha!");}
-        }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Credenciais não encontradas!"));
+            authRepository.save(auth);
+            return ResponseEntity.ok("Senha atualizada.");
+        }).orElseThrow(() -> new RecursoNaoEncontradoException("Credenciais", authId));
     }
 
     // Atualizar o nome de usuário
@@ -53,33 +46,30 @@ public class AuthService {
         return authRepository.findById(authId).map(auth -> {
             if (authRepository.existsByUsername(newUsername)
                     && !authRepository.findByUsername(newUsername).get().getId().equals(authId)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Conflito, usuário já existe!");
+                throw new RecursoDuplicadoException("Auth", "username", newUsername);
             }
             auth.setUsername(newUsername);
-            Auth updatedAuth = authRepository.save(auth);
-            if (updatedAuth != null){
-                return ResponseEntity.ok("Nome de usuário atualizado.");}
-            else{
-                throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro na atualização do nome de usuário!");}
-        }).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Credenciais não encontradas!"));
+            authRepository.save(auth);
+            return ResponseEntity.ok("Nome de usuário atualizado.");
+        }).orElseThrow(() -> new RecursoNaoEncontradoException("Credenciais", authId));
     }
 
     // Buscar credenciais por nome de usuário
     public ResponseEntity<Auth> getByUsername(String username) {
         return authRepository.findByUsername(username)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuário não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", username));
     }
 
     public ResponseEntity<Auth> getById(UUID id) {
         return authRepository.findById(id)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Credenciais não encontradas!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Credenciais", id));
     }
 
     public ResponseEntity<Void> deleteById(UUID id) {
         if (!authRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Credenciais não encontradas!");
+            throw new RecursoNaoEncontradoException("Credenciais", id);
         }
         authRepository.deleteById(id);
         return ResponseEntity.noContent().build();
