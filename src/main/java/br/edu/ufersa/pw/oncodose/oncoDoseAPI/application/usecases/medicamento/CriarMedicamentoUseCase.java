@@ -21,17 +21,18 @@ public class CriarMedicamentoUseCase {
 
     @Transactional
     public Medicamento executar(String nome, String codigoInterno) {
-        if (medicamentoRepository.existsByNome(nome)) {
-            throw new RecursoDuplicadoException("Medicamento", "nome", nome);
+        // Builder valida invariantes (nome obrigatório) antes de existir em memória.
+        Medicamento prototipo = Medicamento.builder(nome).codigoInterno(codigoInterno).build();
+
+        if (medicamentoRepository.existsByNome(prototipo.getNome())) {
+            throw new RecursoDuplicadoException("Medicamento", "nome", prototipo.getNome());
         }
-        if (codigoInterno != null && medicamentoRepository.existsByCodigoInterno(codigoInterno)) {
-            throw new RecursoDuplicadoException("Medicamento", "codigoInterno", codigoInterno);
+        if (prototipo.getCodigoInterno() != null
+                && medicamentoRepository.existsByCodigoInterno(prototipo.getCodigoInterno())) {
+            throw new RecursoDuplicadoException(
+                    "Medicamento", "codigoInterno", prototipo.getCodigoInterno());
         }
 
-        Medicamento medicamento = new Medicamento();
-        medicamento.setNome(nome);
-        medicamento.setCodigoInterno(codigoInterno);
-
-        return medicamentoRepository.save(medicamento);
+        return medicamentoRepository.save(prototipo);
     }
 }
