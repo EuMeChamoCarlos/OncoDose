@@ -10,6 +10,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.Registrar
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.User;
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -27,7 +28,7 @@ public class UserController {
     private final GerenciarUsuarioUseCase gerenciarUsuarioUseCase;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody UserRegistrationRequest user) {
+    public ResponseEntity<?> register(@Valid @RequestBody UserRegistrationRequest user) {
         User criado = registrarUsuarioUseCase.executar(user);
         var location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/user/{id}")
