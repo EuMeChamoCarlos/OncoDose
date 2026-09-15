@@ -9,6 +9,7 @@ import java.util.UUID;
 @Data
 @Entity
 @Table(name = "apresentacao_frasco")
+// ponytail: anêmico (@Data + setter), sem subtrair/repor; virar rico + PUT /api/frascos/{id}/estoque quando o slice de estoque abrir
 public class Frascos {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
