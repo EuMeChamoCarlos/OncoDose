@@ -17,10 +17,14 @@ public class Auth {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
-    @Column(unique = true)
-    private String username = null;
+    @Column(unique = true, nullable = false)
+    private String username;
+
     @JsonIgnore
-    private String password = null;
+    @Column(nullable = false)
+    private String password;
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 }

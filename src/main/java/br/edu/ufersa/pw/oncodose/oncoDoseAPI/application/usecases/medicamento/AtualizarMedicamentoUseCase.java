@@ -29,14 +29,14 @@ public class AtualizarMedicamentoUseCase {
             if (medicamentoRepository.existsByNome(nome)) {
                 throw new RecursoDuplicadoException("Medicamento", "nome", nome);
             }
-            medicamento.setNome(nome);
+            medicamento.renomear(nome);
         }
 
         if (codigoInterno != null && !codigoInterno.equals(medicamento.getCodigoInterno())) {
-            if (medicamentoRepository.existsByCodigoInterno(codigoInterno)) {
+            if (!codigoInterno.isBlank() && medicamentoRepository.existsByCodigoInterno(codigoInterno)) {
                 throw new RecursoDuplicadoException("Medicamento", "codigoInterno", codigoInterno);
             }
-            medicamento.setCodigoInterno(codigoInterno);
+            medicamento.trocarCodigo(codigoInterno);
         }
 
         return medicamentoRepository.save(medicamento);

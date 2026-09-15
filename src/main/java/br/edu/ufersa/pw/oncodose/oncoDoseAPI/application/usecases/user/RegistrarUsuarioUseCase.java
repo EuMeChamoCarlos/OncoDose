@@ -40,14 +40,14 @@ public class RegistrarUsuarioUseCase {
         String sanitizedUsername = StringSanitizer.sanitizeString(request.getUsername());
 
         if (userRepository.existsByAuthUsername(sanitizedUsername)) {
-            throw new RecursoDuplicadoException("Usuário", "username", sanitizedUsername);
+            throw new RecursoDuplicadoException("Usuário", "email", sanitizedUsername);
         }
 
         User newUser = new User();
 
-        if (request.getStatus() != null) {
-            newUser.setStatus(request.getStatus());
-        }
+//        if (request.getStatus() != null) {
+//            newUser.setStatus(request.getStatus());
+//        }
 
         Profile profile = new Profile();
         profile.setName(request.getName());
