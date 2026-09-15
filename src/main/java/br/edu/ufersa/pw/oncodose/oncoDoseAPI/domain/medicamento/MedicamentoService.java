@@ -1,11 +1,11 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
 
@@ -21,10 +21,10 @@ public class MedicamentoService {
     @Transactional
     public Medicamento createMedicamento(String nome, String codigoInterno) {
         if (medicamentoRepository.existsByNome(nome)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Medicamento já existe com este nome!");
+            throw new RecursoDuplicadoException("Medicamento", "nome", nome);
         }
         if (codigoInterno != null && medicamentoRepository.existsByCodigoInterno(codigoInterno)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Medicamento já existe com este código interno!");
+            throw new RecursoDuplicadoException("Medicamento", "codigoInterno", codigoInterno);
         }
 
         Medicamento medicamento = new Medicamento();
@@ -40,29 +40,29 @@ public class MedicamentoService {
 
     public Medicamento getMedicamentoById(UUID medicamentoId) {
         return medicamentoRepository.findById(medicamentoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medicamento não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Medicamento", medicamentoId));
     }
 
     public Medicamento getMedicamentoByCodigoInterno(String codigoInterno) {
         return medicamentoRepository.findByCodigoInterno(codigoInterno)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medicamento não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Medicamento", codigoInterno));
     }
 
     @Transactional
     public Medicamento updateMedicamento(UUID medicamentoId, String nome, String codigoInterno) {
         Medicamento medicamento = medicamentoRepository.findById(medicamentoId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Medicamento não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Medicamento", medicamentoId));
 
         if (nome != null && !nome.equals(medicamento.getNome())) {
             if (medicamentoRepository.existsByNome(nome)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Medicamento já existe com este nome!");
+                throw new RecursoDuplicadoException("Medicamento", "nome", nome);
             }
             medicamento.setNome(nome);
         }
 
         if (codigoInterno != null && !codigoInterno.equals(medicamento.getCodigoInterno())) {
             if (medicamentoRepository.existsByCodigoInterno(codigoInterno)) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "Medicamento já existe com este código interno!");
+                throw new RecursoDuplicadoException("Medicamento", "codigoInterno", codigoInterno);
             }
             medicamento.setCodigoInterno(codigoInterno);
         }
@@ -73,7 +73,7 @@ public class MedicamentoService {
     @Transactional
     public boolean deleteMedicamento(UUID medicamentoId) {
         if (!medicamentoRepository.existsById(medicamentoId)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Medicamento não encontrado!");
+            throw new RecursoNaoEncontradoException("Medicamento", medicamentoId);
         }
         medicamentoRepository.deleteById(medicamentoId);
         return true;

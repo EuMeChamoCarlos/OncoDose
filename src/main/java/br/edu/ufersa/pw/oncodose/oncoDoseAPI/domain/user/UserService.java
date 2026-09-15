@@ -9,17 +9,18 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.RoleRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.jwt.JwtGenerator;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.services.utils.DocumentValidatorUtil;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.services.utils.StringSanitizer;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.CredenciaisInvalidasException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.DocumentoInvalidoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -39,7 +40,7 @@ public class UserService {
         String sanitizedUsername = StringSanitizer.sanitizeString(user.getUsername());
 
         if (userRepository.existsByAuthUsername(sanitizedUsername)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "O nome de usuário já esta em uso!");
+            throw new RecursoDuplicadoException("Usuário", "username", sanitizedUsername);
         }
 
         User newUser = new User();
@@ -60,7 +61,7 @@ public class UserService {
         newUser.setAuth(authRequest);
 
         Role role = roleRepository.findByName(user.getRole().getName())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role não encontrada!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Role", user.getRole().getName()));
         newUser.setRole(role);
 
         return save(newUser);
@@ -71,26 +72,14 @@ public class UserService {
         if (user.getProfile() != null && user.getProfile().getDocument() != null) {
             String document = user.getProfile().getDocument();
             if (document.length() == 11 && !new DocumentValidatorUtil().checkCpf(document)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Documento inválido!");
+                throw new DocumentoInvalidoException(document);
             } else if (document.length() == 14 && !new DocumentValidatorUtil().checkCnpj(document)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Documento inválido!");
+                throw new DocumentoInvalidoException(document);
             }
         }
-        try {
-            Auth auth = authService.createAuth(user.getAuth().getUsername(), user.getAuth().getPassword()).getBody();
-            user.setAuth(auth);
-        } catch (ResponseStatusException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "Erro ao criar autenticação: " + e.getReason());
-        }
-        Optional<User> userSaved = Optional.ofNullable(userRepository.save(user));
-
-        if (!userSaved.isPresent()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Erro ao salvar usuário!");
-        }
-
-        return userSaved.get();
+        Auth auth = authService.createAuth(user.getAuth().getUsername(), user.getAuth().getPassword()).getBody();
+        user.setAuth(auth);
+        return userRepository.save(user);
     }
 
     @Transactional
@@ -101,25 +90,19 @@ public class UserService {
 
             return jwtGenerator.generateToken(authentication);
         } catch (AuthenticationException e) {
-            throw new ResponseStatusException(
-                    HttpStatus.UNAUTHORIZED, "Credenciais inválidas");
+            throw new CredenciaisInvalidasException();
         }
     }
 
     public User getUserById (UUID userId){
         return userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "Usuário não encontrado!"));
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Usuário", userId));
     }
 
     @Transactional
     public void deleteById(UUID userId) {
         if (!userRepository.existsById(userId)) {
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    "Usuário não encontrado!"
-            );
+            throw new RecursoNaoEncontradoException("Usuário", userId);
         }
 
         userRepository.deleteById(userId);
