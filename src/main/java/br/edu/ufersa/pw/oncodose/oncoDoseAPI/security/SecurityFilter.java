@@ -2,13 +2,14 @@ package br.edu.ufersa.pw.oncodose.oncoDoseAPI.security;
 
 
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.jwt.JwtAuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 
 
@@ -17,25 +18,21 @@ public class SecurityFilter {
     public static final String BASE_URL = "/api/user";
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final HandlerExceptionResolver resolver;
 
-    public SecurityFilter(JwtAuthenticationFilter jwtAuthenticationFilter) {
+    public SecurityFilter(JwtAuthenticationFilter jwtAuthenticationFilter,
+                          @Qualifier("handlerExceptionResolver") HandlerExceptionResolver resolver) {
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.resolver = resolver;
     }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 401/403 do filter chain viram ProblemDetail pelo GlobalExceptionHandler
                 .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"message\":\"Não autenticado\"}");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json");
-                            response.getWriter().write("{\"message\":\"Acesso negado\"}");
-                        }))
+                        .authenticationEntryPoint((req, res, e) -> resolver.resolveException(req, res, null, e))
+                        .accessDeniedHandler((req, res, e) -> resolver.resolveException(req, res, null, e)))
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(CorsConfig.corsConfigurationSource()))
 .authorizeHttpRequests(authorize -> authorize

@@ -1,4 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto;
 
-public record AuthRequestDTO(String username, String password) {
+import jakarta.validation.constraints.NotBlank;
+
+public record AuthRequestDTO(@NotBlank String username, @NotBlank String password) {
 }
