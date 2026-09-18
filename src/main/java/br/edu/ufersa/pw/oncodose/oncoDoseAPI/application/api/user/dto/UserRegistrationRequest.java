@@ -21,5 +21,6 @@ public class UserRegistrationRequest {
     private String document;
     private String phone;
     private LocalDate birthDate = null;
+    // ponytail: role vem do body com default ADMIN de proposito (fase de testes); travar em USER + seed de admin antes de producao
     private RoleType role = RoleType.ROLE_ADMIN;
 }
