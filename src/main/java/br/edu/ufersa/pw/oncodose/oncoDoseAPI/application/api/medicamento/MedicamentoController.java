@@ -1,7 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.medicamento;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.common.ResponseDTO;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.medicamento.dto.MedicamentoRequest;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.medicamento.dto.MedicamentoResponse;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.medicamento.dto.UpdateMedicamentoDTO;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.AtualizarMedicamentoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.BuscarMedicamentoUseCase;
@@ -10,6 +10,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.De
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -28,41 +29,38 @@ public class MedicamentoController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<ResponseDTO<?>> create(@RequestBody MedicamentoRequest request) {
+    public ResponseEntity<MedicamentoResponse> create(@RequestBody MedicamentoRequest request) {
         Medicamento criado = criarMedicamentoUseCase.executar(request.getNome(), request.getCodigoInterno());
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(criado.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(new ResponseDTO<>(criado));
+        return ResponseEntity.created(location).body(MedicamentoResponse.fromMedicamento(criado));
     }
 
     @GetMapping
-    public ResponseEntity<ResponseDTO<?>> list(Pageable pageable) {
-        ResponseDTO<?> response = new ResponseDTO<>(buscarMedicamentoUseCase.listar(pageable));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PagedModel<MedicamentoResponse>> list(Pageable pageable) {
+        return ResponseEntity.ok(new PagedModel<>(
+                buscarMedicamentoUseCase.listar(pageable).map(MedicamentoResponse::fromMedicamento)));
     }
 
     @GetMapping("/{medicamentoId}")
-    public ResponseEntity<ResponseDTO<?>> getById(@PathVariable UUID medicamentoId) {
-        ResponseDTO<?> response = new ResponseDTO<>(buscarMedicamentoUseCase.porId(medicamentoId));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<MedicamentoResponse> getById(@PathVariable UUID medicamentoId) {
+        return ResponseEntity.ok(MedicamentoResponse.fromMedicamento(buscarMedicamentoUseCase.porId(medicamentoId)));
     }
 
     @GetMapping("/codigo/{codigoInterno}")
-    public ResponseEntity<ResponseDTO<?>> getByCodigoInterno(@PathVariable String codigoInterno) {
-        ResponseDTO<?> response = new ResponseDTO<>(buscarMedicamentoUseCase.porCodigo(codigoInterno));
-        return ResponseEntity.ok(response);
-    }   
+    public ResponseEntity<MedicamentoResponse> getByCodigoInterno(@PathVariable String codigoInterno) {
+        return ResponseEntity.ok(MedicamentoResponse.fromMedicamento(buscarMedicamentoUseCase.porCodigo(codigoInterno)));
+    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{medicamentoId}")
-    public ResponseEntity<ResponseDTO<?>> update(
+    public ResponseEntity<MedicamentoResponse> update(
             @PathVariable UUID medicamentoId,
             @RequestBody UpdateMedicamentoDTO request) {
-        ResponseDTO<?> response = new ResponseDTO<>(
-                atualizarMedicamentoUseCase.executar(medicamentoId, request.getNome(), request.getCodigoInterno()));
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(MedicamentoResponse.fromMedicamento(
+                atualizarMedicamentoUseCase.executar(medicamentoId, request.getNome(), request.getCodigoInterno())));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
