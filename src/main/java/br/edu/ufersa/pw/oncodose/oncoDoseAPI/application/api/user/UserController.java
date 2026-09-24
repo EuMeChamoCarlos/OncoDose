@@ -1,8 +1,8 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.common.ResponseDTO;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.AuthRequestDTO;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.AuthenticatedUserResponse;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.TokenResponse;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.UserRegistrationRequest;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.AutenticarUsuarioUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.GerenciarUsuarioUseCase;
@@ -28,31 +28,26 @@ public class UserController {
     private final GerenciarUsuarioUseCase gerenciarUsuarioUseCase;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody UserRegistrationRequest user) {
+    public ResponseEntity<AuthenticatedUserResponse> register(@Valid @RequestBody UserRegistrationRequest user) {
         User criado = registrarUsuarioUseCase.executar(user);
         var location = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/user/{id}")
                 .buildAndExpand(criado.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(new ResponseDTO<>(AuthenticatedUserResponse.fromUser(criado)));
+        return ResponseEntity.created(location).body(AuthenticatedUserResponse.fromUser(criado));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
-        ResponseDTO<?> response = new ResponseDTO<>(
-                autenticarUsuarioUseCase.executar(authRequest.username(), authRequest.password()));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<TokenResponse> login(@Valid @RequestBody AuthRequestDTO authRequest) {
+        return ResponseEntity.ok(new TokenResponse(
+                autenticarUsuarioUseCase.executar(authRequest.username(), authRequest.password())));
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ResponseDTO<AuthenticatedUserResponse>> me(
+    public ResponseEntity<AuthenticatedUserResponse> me(
             @AuthenticationPrincipal CustomUserDetails userAuthentication
     ) {
-        return ResponseEntity.ok(
-                new ResponseDTO<>(
-                        AuthenticatedUserResponse.fromUser(userAuthentication.getUser())
-                )
-        );
+        return ResponseEntity.ok(AuthenticatedUserResponse.fromUser(userAuthentication.getUser()));
     }
 
     @DeleteMapping("/me")
@@ -65,9 +60,8 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUserById(@PathVariable UUID userId) {
-        ResponseDTO<?> response = new ResponseDTO<>(AuthenticatedUserResponse.fromUser(gerenciarUsuarioUseCase.porId(userId)));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<AuthenticatedUserResponse> getUserById(@PathVariable UUID userId) {
+        return ResponseEntity.ok(AuthenticatedUserResponse.fromUser(gerenciarUsuarioUseCase.porId(userId)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

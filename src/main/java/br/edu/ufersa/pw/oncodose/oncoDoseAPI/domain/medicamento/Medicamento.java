@@ -4,7 +4,6 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.MedicamentoInvalid
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.frascos.Frascos;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.Prescricao;
 import jakarta.persistence.*;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.List;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -30,11 +29,9 @@ public class Medicamento {
     @Column(name = "codigo_interno", unique = true)
     private String codigoInterno;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "medicamento", cascade = CascadeType.ALL)
     private List<Frascos> apresentacoes;
 
-    @JsonIgnore
     @OneToMany(mappedBy = "medicamento", cascade = CascadeType.ALL)
     private List<Prescricao> prescricoes;
 

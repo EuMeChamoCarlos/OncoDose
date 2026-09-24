@@ -20,7 +20,7 @@ Spring Boot 4.1.1 backend (oncoDoseAPI). Requires JDK 21 (`JAVA_HOME=C:\Users\Se
 - `DomainException extends RuntimeException` in `domain.exception`, fail-fast with rich context. Never `ResponseStatusException` in business code, never `catch (Exception)` swallowing.
 - `GlobalExceptionHandler` (`application.api.exception`) returns RFC 7807 `ProblemDetail` + `timestamp`; never 200-with-error, never leak stacktrace.
 - UseCases in `application.usecases` own `@Transactional`; `domain.services` is pure logic with zero infra; controllers are thin (`@Valid` DTO → UseCase → `ResponseEntity` 200/201+`Location`/204). No Repository injection in controllers.
-- No MapStruct yet, no Records DTOs yet, no `/api/v1` yet — Fase 3-7 pending.
+- Responses return a typed DTO record (`XxxResponse.fromXxx(entity)`) directly, never the `@Entity` and never an envelope; lists return `PagedModel<XxxResponse>`. No MapStruct yet, no `/api/v1` yet.
 
 ## AI working agreement (adapted from CLAUDE.md)
 - Triage every task before work, printed first: `Size: small|medium|large — why / Tests: touched-module|full suite — why / Branch: <task-named branch> from <base>`.
