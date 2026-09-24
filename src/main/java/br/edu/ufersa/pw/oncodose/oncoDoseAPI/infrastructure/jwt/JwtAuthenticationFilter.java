@@ -7,8 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.jspecify.annotations.NullMarked;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,8 +19,6 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 @NullMarked
 @Component
@@ -54,38 +51,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     
         final String authorizationHeader = request.getHeader("Authorization");
     
-        String username = null;
-        String jwt = null;
+        String username;
+        String jwt;
     
         try {
             if (authorizationHeader != null && authorizationHeader.startsWith(PREFIX)) {
-                jwt = authorizationHeader.substring(7); // Remove "Bearer "
+                jwt = authorizationHeader.substring(7);
                 Claims claims = jwtValidator.validateTokenAndGetClaims(jwt);
                 username = claims.getSubject();
 
                 if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    String role = claims.get("ROLE", String.class);
-
-                    // Configurando o contexto de autenticação
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
-                    // Configurando as autoridades
-                    List<GrantedAuthority> authorities = new ArrayList<>();
-                    if (role != null) {
-                        String authority = role.startsWith("ROLE_") ? role : "ROLE_" + role;
-                        authorities.add(new SimpleGrantedAuthority(authority));
-                    } else {
-                        authorities.addAll(userDetails.getAuthorities());
+                    if (userDetails.isEnabled()) {
+                        UsernamePasswordAuthenticationToken authToken =
+                                new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
                     }
-
-                    UsernamePasswordAuthenticationToken authToken =
-                            new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
-
-                    authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (JwtException e) {
+        } catch (JwtException | AuthenticationException e) {
             SecurityContextHolder.clearContext();
         }
     

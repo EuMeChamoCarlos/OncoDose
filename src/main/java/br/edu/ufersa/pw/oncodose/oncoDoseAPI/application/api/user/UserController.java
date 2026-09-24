@@ -34,11 +34,11 @@ public class UserController {
                 .path("/api/user/{id}")
                 .buildAndExpand(criado.getId())
                 .toUri();
-        return ResponseEntity.created(location).body(new ResponseDTO<>(criado));
+        return ResponseEntity.created(location).body(new ResponseDTO<>(AuthenticatedUserResponse.fromUser(criado)));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody AuthRequestDTO authRequest) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthRequestDTO authRequest) {
         ResponseDTO<?> response = new ResponseDTO<>(
                 autenticarUsuarioUseCase.executar(authRequest.username(), authRequest.password()));
         return ResponseEntity.ok(response);
@@ -66,7 +66,7 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{userId}")
     public ResponseEntity<?> getUserById(@PathVariable UUID userId) {
-        ResponseDTO<?> response = new ResponseDTO<>(gerenciarUsuarioUseCase.porId(userId));
+        ResponseDTO<?> response = new ResponseDTO<>(AuthenticatedUserResponse.fromUser(gerenciarUsuarioUseCase.porId(userId)));
         return ResponseEntity.ok(response);
     }
 
