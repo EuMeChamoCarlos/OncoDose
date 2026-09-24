@@ -8,6 +8,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.Bu
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.CriarMedicamentoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento.DeletarMedicamentoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
@@ -29,7 +30,7 @@ public class MedicamentoController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<MedicamentoResponse> create(@RequestBody MedicamentoRequest request) {
+    public ResponseEntity<MedicamentoResponse> create(@Valid @RequestBody MedicamentoRequest request) {
         Medicamento criado = criarMedicamentoUseCase.executar(request.getNome(), request.getCodigoInterno());
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")

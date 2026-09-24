@@ -6,6 +6,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.frascos.FrascosRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.MedicamentoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +28,9 @@ public class CriarFrascoUseCase {
     }
 
     @Transactional
-    public Frascos executar(FrascoRequest request) {
-        Medicamento medicamento = medicamentoRepository.findById(request.getMedicamentoId())
-                .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Medicamento", request.getMedicamentoId()));
+    public Frascos executar(UUID medicamentoId, FrascoRequest request) {
+        Medicamento medicamento = medicamentoRepository.findById(medicamentoId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Medicamento", medicamentoId));
 
         Frascos frasco = new Frascos();
         frasco.setMedicamento(medicamento);

@@ -17,7 +17,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/frascos")
+@RequestMapping("/api/medicamentos/{medicamentoId}/frascos")
 @RequiredArgsConstructor
 public class FrascosController {
 
@@ -26,8 +26,10 @@ public class FrascosController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<FrascoResponse> create(@Valid @RequestBody FrascoRequest request) {
-        Frascos criado = criarFrascoUseCase.executar(request);
+    public ResponseEntity<FrascoResponse> create(
+            @PathVariable UUID medicamentoId,
+            @Valid @RequestBody FrascoRequest request) {
+        Frascos criado = criarFrascoUseCase.executar(medicamentoId, request);
         var location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
                 .buildAndExpand(criado.getId())
@@ -36,12 +38,13 @@ public class FrascosController {
     }
 
     @GetMapping
-    public ResponseEntity<PagedModel<FrascoResponse>> list(Pageable pageable) {
-        return ResponseEntity.ok(new PagedModel<>(buscarFrascoUseCase.listar(pageable).map(FrascoResponse::fromFrasco)));
+    public ResponseEntity<PagedModel<FrascoResponse>> list(@PathVariable UUID medicamentoId, Pageable pageable) {
+        return ResponseEntity.ok(new PagedModel<>(
+                buscarFrascoUseCase.listar(medicamentoId, pageable).map(FrascoResponse::fromFrasco)));
     }
 
     @GetMapping("/{frascoId}")
-    public ResponseEntity<FrascoResponse> getById(@PathVariable UUID frascoId) {
-        return ResponseEntity.ok(FrascoResponse.fromFrasco(buscarFrascoUseCase.porId(frascoId)));
+    public ResponseEntity<FrascoResponse> getById(@PathVariable UUID medicamentoId, @PathVariable UUID frascoId) {
+        return ResponseEntity.ok(FrascoResponse.fromFrasco(buscarFrascoUseCase.porId(medicamentoId, frascoId)));
     }
 }
