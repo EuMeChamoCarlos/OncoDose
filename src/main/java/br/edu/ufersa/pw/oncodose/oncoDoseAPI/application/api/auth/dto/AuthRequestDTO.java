@@ -1,4 +1,4 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 

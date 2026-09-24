@@ -5,6 +5,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.jwt.JwtAuthenticatio
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -15,8 +16,6 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
 public class SecurityFilter {
-    public static final String BASE_URL = "/api/user";
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final HandlerExceptionResolver resolver;
 
@@ -35,11 +34,9 @@ public class SecurityFilter {
                         .accessDeniedHandler((req, res, e) -> resolver.resolveException(req, res, null, e)))
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(CorsConfig.corsConfigurationSource()))
-.authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error").anonymous()
-                        .requestMatchers(BASE_URL + "/register").permitAll()
-                        .requestMatchers(BASE_URL + "/login").permitAll()
-                        .requestMatchers(BASE_URL + "/me").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
