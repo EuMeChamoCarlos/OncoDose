@@ -1,10 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.AuthRequestDTO;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.AuthenticatedUserResponse;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.TokenResponse;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.UserRegistrationRequest;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.AutenticarUsuarioUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.GerenciarUsuarioUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.RegistrarUsuarioUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
@@ -20,27 +17,20 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/user")
+@RequestMapping("/api/users")
 @RequiredArgsConstructor
 public class UserController {
     private final RegistrarUsuarioUseCase registrarUsuarioUseCase;
-    private final AutenticarUsuarioUseCase autenticarUsuarioUseCase;
     private final GerenciarUsuarioUseCase gerenciarUsuarioUseCase;
 
-    @PostMapping("/register")
+    @PostMapping
     public ResponseEntity<AuthenticatedUserResponse> register(@Valid @RequestBody UserRegistrationRequest user) {
         User criado = registrarUsuarioUseCase.executar(user);
-        var location = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/user/{id}")
+        var location = ServletUriComponentsBuilder.fromCurrentRequest()
+                .path("/{id}")
                 .buildAndExpand(criado.getId())
                 .toUri();
         return ResponseEntity.created(location).body(AuthenticatedUserResponse.fromUser(criado));
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<TokenResponse> login(@Valid @RequestBody AuthRequestDTO authRequest) {
-        return ResponseEntity.ok(new TokenResponse(
-                autenticarUsuarioUseCase.executar(authRequest.username(), authRequest.password())));
     }
 
     @GetMapping("/me")
@@ -70,6 +60,4 @@ public class UserController {
         gerenciarUsuarioUseCase.excluir(userId);
         return ResponseEntity.noContent().build();
     }
-
-
 }
