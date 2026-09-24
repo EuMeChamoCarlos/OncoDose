@@ -4,7 +4,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.privilege.Privilege;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -27,16 +26,11 @@ public class JwtGenerator {
         assert userDetails != null;
         var user = userDetails.getUser();
 
-        
-        var privileges = user.getPrivileges().stream()
-                .map(Privilege::getName)
-                .toArray(String[]::new);
         return Jwts.builder()
                 .subject(user.getAuth().getUsername())
                 .claims(
                     Map.of(
                         "UUID", user.getId(),
-                        "AUTHORITIES", privileges,
                         "ROLE", user.getRole().getName(),
                         "name", user.getProfile() == null
                                 ? "Usuário Indefinido"
