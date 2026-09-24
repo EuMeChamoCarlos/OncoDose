@@ -6,12 +6,9 @@ import java.util.Map;
 
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.privilege.Privilege;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.UserStatus;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
-import org.springframework.web.server.ResponseStatusException;
 
 
 import io.jsonwebtoken.Jwts;
@@ -34,10 +31,6 @@ public class JwtGenerator {
         var privileges = user.getPrivileges().stream()
                 .map(Privilege::getName)
                 .toArray(String[]::new);
-        
-        if (user.getStatus().equals(UserStatus.INACTIVE)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Usuário inativo");
-        }
         return Jwts.builder()
                 .subject(user.getAuth().getUsername())
                 .claims(
