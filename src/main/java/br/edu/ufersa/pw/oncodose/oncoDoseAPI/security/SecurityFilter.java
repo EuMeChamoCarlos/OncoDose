@@ -37,6 +37,7 @@ public class SecurityFilter {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error").anonymous()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/medicamentos").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));

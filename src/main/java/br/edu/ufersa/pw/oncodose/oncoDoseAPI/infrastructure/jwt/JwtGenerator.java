@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
@@ -22,9 +22,8 @@ public class JwtGenerator {
     static final long EXPIRATION_TIME = (1000 * 60 * 60 * 10); // 10 horas
 
     public String generateToken(Authentication authentication) {
-        var userDetails = (CustomUserDetails) authentication.getPrincipal();
-        assert userDetails != null;
-        var user = userDetails.getUser();
+        var user = (User) authentication.getPrincipal();
+        assert user != null;
 
         return Jwts.builder()
                 .subject(user.getAuth().getUsername())
