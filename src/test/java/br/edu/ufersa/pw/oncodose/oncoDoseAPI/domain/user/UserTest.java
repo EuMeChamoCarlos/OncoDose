@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.auth.Auth;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.Role;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.GrantedAuthority;
 
 class UserTest {
 
@@ -25,7 +26,7 @@ class UserTest {
         assertThat(user.getUsername()).isEqualTo("admin@oncodose.com");
         assertThat(user.getPassword()).isEqualTo("encoded-password");
         assertThat(user.getAuthorities())
-                .extracting(authority -> authority.getAuthority())
+                .extracting(GrantedAuthority::getAuthority)
                 .containsExactly("ROLE_ADMIN");
         assertThat(user.isEnabled()).isTrue();
         assertThat(user.isAccountNonExpired()).isTrue();
