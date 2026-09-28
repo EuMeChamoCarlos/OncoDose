@@ -1,6 +1,5 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.security;
 
-
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.jwt.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -11,8 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
-
-
 
 @Configuration
 public class SecurityFilter {
@@ -37,6 +34,7 @@ public class SecurityFilter {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/error").anonymous()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/users").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/medicamentos").permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(sessionManagement -> sessionManagement
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));

@@ -4,7 +4,6 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.Authentica
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto.UserRegistrationRequest;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.GerenciarUsuarioUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.user.RegistrarUsuarioUseCase;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.CustomUserDetails;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.User;
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
@@ -35,16 +34,16 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<AuthenticatedUserResponse> me(
-            @AuthenticationPrincipal CustomUserDetails userAuthentication
+            @AuthenticationPrincipal User userAuthentication
     ) {
-        return ResponseEntity.ok(AuthenticatedUserResponse.fromUser(userAuthentication.getUser()));
+        return ResponseEntity.ok(AuthenticatedUserResponse.fromUser(userAuthentication));
     }
 
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteMe(
-            @AuthenticationPrincipal CustomUserDetails userAuthentication
+            @AuthenticationPrincipal User userAuthentication
     ) {
-        gerenciarUsuarioUseCase.excluir(userAuthentication.getUser().getId());
+        gerenciarUsuarioUseCase.excluir(userAuthentication.getId());
         return ResponseEntity.noContent().build();
     }
 
