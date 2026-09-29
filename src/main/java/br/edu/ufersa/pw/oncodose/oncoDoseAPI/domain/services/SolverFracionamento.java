@@ -7,7 +7,9 @@ import com.google.ortools.linearsolver.MPSolver;
 import com.google.ortools.linearsolver.MPVariable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.IntStream;
 
 /**
  * Modelo de Gê et al. (2023), eq. 7–10, com custo por frasco aberto. Uma instância é
@@ -126,23 +128,53 @@ public final class SolverFracionamento {
                     }
                 }
             }
-            List<Alocacao> alocacoes = new ArrayList<>();
-            for (int i = 0; i < n; i++) {
-                for (int j = 0; j < tipos.size(); j++) {
-                    for (int k = 0; k < x[i][j].length; k++) {
-                        double fracao = x[i][j][k].solutionValue();
-                        if (fracao > EPS) {
-                            // Tolerância numérica do solver pode passar de 1 por ~1e-9; a V3 exige fracao <= 1.
-                            alocacoes.add(new Alocacao(i, j, k, Math.min(1, fracao)));
-                        }
-                    }
-                }
-            }
             return new Solucao(custo.value(), volumeAberto - demanda,
-                    status == MPSolver.ResultStatus.OPTIMAL, abertos, alocacoes);
+                    status == MPSolver.ResultStatus.OPTIMAL, abertos, redistribuir(doses, tipos, abertos));
         } finally {
             solver.delete();
         }
+    }
+
+    /**
+     * Pós-processamento: o custo depende só de quais frascos abrir (y); qualquer divisão das
+     * doses entre esses frascos é igualmente ótima. O x do solver sai arbitrário (ex: 8 mg de
+     * um frasco), então as doses são refeitas enchendo os frascos em sequência, maior dose e
+     * maior frasco primeiro. Cada frasco é partido no máximo uma vez entre dois pacientes:
+     * transferências ≤ pacientes + frascos − 1, e o resultado é determinístico.
+     */
+    static List<Alocacao> redistribuir(List<Double> doses, List<TipoFrasco> tipos, List<FrascoAberto> abertos) {
+        List<Alocacao> alocacoes = new ArrayList<>();
+        if (abertos.isEmpty()) {
+            return alocacoes;
+        }
+        List<FrascoAberto> frascos = abertos.stream()
+                .sorted(Comparator.comparingDouble((FrascoAberto f) -> -tipos.get(f.tipo()).volumeMg())
+                        .thenComparingInt(FrascoAberto::tipo)
+                        .thenComparingInt(FrascoAberto::numero))
+                .toList();
+        List<Integer> pacientes = IntStream.range(0, doses.size()).boxed()
+                .sorted(Comparator.comparingDouble((Integer i) -> -doses.get(i)).thenComparingInt(i -> i))
+                .toList();
+
+        int f = 0;
+        double restante = tipos.get(frascos.get(0).tipo()).volumeMg();
+        for (int i : pacientes) {
+            double falta = doses.get(i);
+            while (falta > EPS && f < frascos.size()) {
+                FrascoAberto frasco = frascos.get(f);
+                double tira = Math.min(falta, restante);
+                if (tira > EPS) {
+                    alocacoes.add(new Alocacao(i, frasco.tipo(), frasco.numero(),
+                            Math.min(1, tira / tipos.get(frasco.tipo()).volumeMg())));
+                }
+                falta -= tira;
+                restante -= tira;
+                if (restante <= EPS && ++f < frascos.size()) {
+                    restante = tipos.get(frascos.get(f).tipo()).volumeMg();
+                }
+            }
+        }
+        return alocacoes;
     }
 
     /**

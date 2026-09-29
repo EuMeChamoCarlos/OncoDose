@@ -5,7 +5,9 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.Otimizacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.StatusOtimizacao;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,16 +35,25 @@ public record OtimizacaoResponse(UUID id, UUID medicamentoId, LocalDate data, St
                 o.getCustoTotal(),
                 o.getCustoTotal().add(o.getEconomiaVsEmpirico()),
                 o.getEconomiaVsEmpirico(),
-                o.getDesperdicioMg(),
+                arredondar(o.getDesperdicioMg(), 2),
                 alocacoes.stream()
                         .map(a -> new FrascoAberto(a.getApresentacao().getId(), a.getApresentacao().getVolumeMg(),
                                 a.getApresentacao().getCusto(), a.getNumeroFrasco()))
                         .distinct()
+                        .sorted(Comparator.comparing(FrascoAberto::volumeMg).reversed()
+                                .thenComparing(FrascoAberto::numeroFrasco))
                         .toList(),
                 alocacoes.stream()
                         .map(a -> new Alocacao(a.getPrescricao().getCodigoPrescricao(), a.getApresentacao().getId(),
-                                a.getNumeroFrasco(), a.getFracao(), a.getVolumeUtilizadoMg()))
+                                a.getNumeroFrasco(), arredondar(a.getFracao(), 4), arredondar(a.getVolumeUtilizadoMg(), 2)))
+                        .sorted(Comparator.comparing(Alocacao::codigoPrescricao)
+                                .thenComparing(Alocacao::volumeMg, Comparator.reverseOrder()))
                         .toList()
         );
+    }
+
+    /** Só apresentação: tira ruído de ponto flutuante (0.9999999999999999). O banco guarda o valor exato. */
+    private static Double arredondar(Double valor, int casas) {
+        return BigDecimal.valueOf(valor).setScale(casas, RoundingMode.HALF_UP).doubleValue();
     }
 }

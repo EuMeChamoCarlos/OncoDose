@@ -29,6 +29,8 @@ class SolverFracionamentoTest {
         assertThat(s.custoTotal()).isCloseTo(704, within(1e-6));
         assertThat(s.desperdicioMg()).isCloseTo(120, within(1e-6));
         assertSolucaoValida(s, d, tipos);
+        // Enchimento sequencial: 1270→500+500+270 | 570→230+340 | 490→160+330 | 300→170+130 (250 mg).
+        assertThat(s.alocacoes()).hasSize(9);
 
         // Sem dividir frasco: 300→500 (126), 570→500+250 (200), 490→500 (126), 1270→3×500 (378).
         assertThat(SolverFracionamento.custoSemCompartilhamento(d, tipos)).isCloseTo(830, within(1e-6));
@@ -69,8 +71,12 @@ class SolverFracionamentoTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
-    /** Dose exata por paciente, frasco nunca usado além de 100% e só frascos abertos. */
+    /**
+     * Dose exata por paciente, frasco nunca usado além de 100%, só frascos abertos e, pelo
+     * enchimento sequencial, no máximo pacientes + frascos − 1 transferências.
+     */
     private static void assertSolucaoValida(Solucao s, List<Double> d, List<TipoFrasco> tipos) {
+        assertThat(s.alocacoes().size()).isLessThanOrEqualTo(d.size() + s.abertos().size() - 1);
         double[] recebido = new double[d.size()];
         Map<FrascoAberto, Double> usoPorFrasco = new HashMap<>();
         for (Alocacao a : s.alocacoes()) {
