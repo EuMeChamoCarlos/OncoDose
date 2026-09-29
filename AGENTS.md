@@ -4,7 +4,7 @@ Spring Boot 4.1.1 backend (oncoDoseAPI). Requires JDK 21 (`JAVA_HOME=C:\Users\Se
 
 ## Commands (Windows)
 - Build/test: `.\mvnw.cmd test` (uses bundled Maven 3.9.16 wrapper — do not use a system `mvn`)
-- Run dev server: `.\mvnw.cmd spring-boot:run`
+- Run dev server: `.\mvnw.cmd spring-boot:run` (add `"-Dspring-boot.run.profiles=dev"` to load the synthetic seed from `db/seed/afterMigrate__seed_sintetico.sql`; idempotent, never overwrites existing rows)
 - Single test: `.\mvnw.cmd test -Dtest=OncoDoseApiApplicationTests`
 - Compile only: `.\mvnw.cmd -q compile -DskipTests`
 
