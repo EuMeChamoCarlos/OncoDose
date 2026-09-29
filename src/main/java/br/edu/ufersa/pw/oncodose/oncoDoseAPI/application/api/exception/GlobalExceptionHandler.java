@@ -18,6 +18,8 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.ErrorResponse;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -107,8 +109,24 @@ public class GlobalExceptionHandler {
         return problem;
     }
 
+    /** UUID, data ou enum inválido no path/query (ex: GET /api/prescricoes/abc). */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Parâmetro '" + ex.getName() + "' com valor inválido!");
+        problem.setTitle("Erro de leitura da requisição");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
     @ExceptionHandler(Exception.class)
     public ProblemDetail handleFallback(Exception ex) {
+        // Exceções do Spring MVC (rota inexistente 404, método 405, media type 415...) já trazem o status certo.
+        if (ex instanceof ErrorResponse erro) {
+            ProblemDetail problem = erro.getBody();
+            problem.setProperty("timestamp", Instant.now());
+            return problem;
+        }
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, "Erro interno inesperado!");
         problem.setTitle("Erro interno");
