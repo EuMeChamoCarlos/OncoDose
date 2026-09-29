@@ -2,7 +2,6 @@ package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento;
 
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.MedicamentoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.frascos.Frascos;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.Prescricao;
 import jakarta.persistence.*;
 import java.util.List;
 import java.util.UUID;
@@ -31,9 +30,6 @@ public class Medicamento {
 
     @OneToMany(mappedBy = "medicamento", cascade = CascadeType.ALL)
     private List<Frascos> apresentacoes;
-
-    @OneToMany(mappedBy = "medicamento", cascade = CascadeType.ALL)
-    private List<Prescricao> prescricoes;
 
     private Medicamento(Builder builder) {
         this.nome = builder.nome;
