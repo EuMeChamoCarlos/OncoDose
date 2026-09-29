@@ -9,6 +9,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontra
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.profile.Profile;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.Role;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.RoleRepository;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.RoleType;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.User;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.user.UserRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.infrastructure.services.utils.DocumentValidatorUtil;
@@ -70,8 +71,10 @@ public class RegistrarUsuarioUseCase {
         authRequest.setPassword(request.getPassword());
         newUser.setAuth(authRequest);
 
-        Role role = roleRepository.findByName(request.getRole().getName())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Role", request.getRole().getName()));
+        // Registro público nasce sempre USER; ADMIN só via UPDATE manual no banco.
+        String roleName = RoleType.ROLE_USER.getName();
+        Role role = roleRepository.findByName(roleName)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Role", roleName));
         newUser.setRole(role);
 
         Auth auth = authService.createAuth(

@@ -1,6 +1,5 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.user.dto;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.role.RoleType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -21,6 +20,4 @@ public class UserRegistrationRequest {
     private String document;
     private String phone;
     private LocalDate birthDate = null;
-    // ponytail: role vem do body com default ADMIN de proposito (fase de testes); travar em USER + seed de admin antes de producao
-    private RoleType role = RoleType.ROLE_ADMIN;
 }

@@ -15,6 +15,7 @@ Spring Boot 4.1.1 backend (oncoDoseAPI). Requires JDK 21 (`JAVA_HOME=C:\Users\Se
 - Postgres + Flyway V1-V3 applied (`jdbc:postgresql://localhost:5432/onco_dose`, `ddl-auto=validate`). Context test needs a running Postgres.
 - Security: `SecurityConfig` + `SecurityFilter` + JWT (`ROLE_USER`/`ROLE_ADMIN`, hierarchy `ADMIN → USER`). `@PreAuthorize` failures are mapped to 403 `ProblemDetail` by `GlobalExceptionHandler`, not by the filter chain.
 - `HELP.md` is Initializr boilerplate and gitignored — ignore it.
+- `POST /api/users` always creates a USER. Promote to ADMIN manually: `UPDATE users SET role_id = (SELECT id FROM roles WHERE name = 'ADMIN') WHERE auth_id = (SELECT id FROM auths WHERE username = '<email>');`
 
 ## Architecture rules (Prof. Gadelha, v1+v2 merged)
 - `DomainException extends RuntimeException` in `domain.exception`, fail-fast with rich context. Never `ResponseStatusException` in business code, never `catch (Exception)` swallowing.
