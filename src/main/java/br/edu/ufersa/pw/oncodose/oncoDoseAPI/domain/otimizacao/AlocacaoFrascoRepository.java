@@ -10,4 +10,6 @@ import java.util.UUID;
 public interface AlocacaoFrascoRepository extends JpaRepository<AlocacaoFrasco, UUID> {
 
     List<AlocacaoFrasco> findByOtimizacaoId(UUID otimizacaoId);
+
+    boolean existsByPrescricaoId(UUID prescricaoId);
 }

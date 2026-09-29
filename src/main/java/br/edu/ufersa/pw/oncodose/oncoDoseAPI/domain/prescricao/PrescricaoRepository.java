@@ -1,6 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +17,10 @@ public interface PrescricaoRepository
     boolean existsByCodigoPrescricao(String codigoPrescricao);
 
     boolean existsByMedicamentoId(UUID medicamentoId);
+
+    /** Pacientes i de uma instância do modelo: prescrições APTO do medicamento no dia. */
+    List<Prescricao> findByMedicamentoIdAndDataPrescricaoAndStatus(
+            UUID medicamentoId, LocalDate dataPrescricao, StatusPrescricao status);
 
     /**
      * Filtros opcionais: null ignora o critério. Specification em vez de
