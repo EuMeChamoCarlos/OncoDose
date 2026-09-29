@@ -7,6 +7,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.StatusOtimizacao;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -16,6 +17,7 @@ import java.util.UUID;
  * os frascos a abrir e quanto de cada frasco vai para cada prescrição.
  */
 public record OtimizacaoResponse(UUID id, UUID medicamentoId, LocalDate data, StatusOtimizacao status,
+                                 LocalDateTime confirmadaEm,
                                  BigDecimal custoOtimizado, BigDecimal custoSemCompartilhamento,
                                  BigDecimal economia, Double desperdicioMg,
                                  List<FrascoAberto> frascosAbertos, List<Alocacao> alocacoes) {
@@ -32,6 +34,7 @@ public record OtimizacaoResponse(UUID id, UUID medicamentoId, LocalDate data, St
                 o.getMedicamento().getId(),
                 o.getDataReferencia(),
                 o.getStatus(),
+                o.getConfirmadaEm(),
                 o.getCustoTotal(),
                 o.getCustoTotal().add(o.getEconomiaVsEmpirico()),
                 o.getEconomiaVsEmpirico(),

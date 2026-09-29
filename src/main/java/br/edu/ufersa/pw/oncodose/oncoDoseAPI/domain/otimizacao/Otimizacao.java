@@ -8,6 +8,7 @@ import lombok.Setter;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -44,6 +45,20 @@ public class Otimizacao {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
+    @Column(name = "confirmada_em")
+    private LocalDateTime confirmadaEm;
+
     @OneToMany(mappedBy = "otimizacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlocacaoFrasco> alocacoes = new ArrayList<>();
+
+    public boolean isConfirmada() {
+        return status == StatusOtimizacao.CONFIRMADA;
+    }
+
+    /** Preparo feito: a baixa de estoque é responsabilidade de quem confirma (use case). */
+    public void confirmar() {
+        this.status = StatusOtimizacao.CONFIRMADA;
+        // Milissegundos: a resposta da 1ª confirmação (memória) e da repetição (banco) saem idênticas.
+        this.confirmadaEm = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
+    }
 }

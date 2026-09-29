@@ -10,6 +10,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontra
 import java.time.Instant;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -105,6 +106,16 @@ public class GlobalExceptionHandler {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
         problem.setTitle("Violação de regra de negócio");
+        problem.setProperty("timestamp", Instant.now());
+        return problem;
+    }
+
+    /** Restrição do banco (ex: índice único de confirmação em corrida): conflito, não erro interno. */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ProblemDetail handleIntegridade(DataIntegrityViolationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(
+                HttpStatus.CONFLICT, "A operação conflita com o estado atual dos dados!");
+        problem.setTitle("Conflito");
         problem.setProperty("timestamp", Instant.now());
         return problem;
     }

@@ -3,6 +3,7 @@ package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.otimizacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.otimizacao.dto.OtimizacaoResponse;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.otimizacao.dto.OtimizarRequest;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.BuscarOtimizacaoUseCase;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.ConfirmarOtimizacaoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.OtimizarDiaUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.Otimizacao;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import java.util.UUID;
 public class OtimizacaoController {
     private final OtimizarDiaUseCase otimizarDiaUseCase;
     private final BuscarOtimizacaoUseCase buscarOtimizacaoUseCase;
+    private final ConfirmarOtimizacaoUseCase confirmarOtimizacaoUseCase;
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
@@ -35,5 +37,12 @@ public class OtimizacaoController {
     @GetMapping("/{otimizacaoId}")
     public ResponseEntity<OtimizacaoResponse> getById(@PathVariable UUID otimizacaoId) {
         return ResponseEntity.ok(OtimizacaoResponse.fromOtimizacao(buscarOtimizacaoUseCase.porId(otimizacaoId)));
+    }
+
+    /** PUT idempotente: repetir (ex: resposta perdida na rede) devolve o mesmo estado, sem baixar de novo. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{otimizacaoId}/confirmacao")
+    public ResponseEntity<OtimizacaoResponse> confirmar(@PathVariable UUID otimizacaoId) {
+        return ResponseEntity.ok(OtimizacaoResponse.fromOtimizacao(confirmarOtimizacaoUseCase.executar(otimizacaoId)));
     }
 }
