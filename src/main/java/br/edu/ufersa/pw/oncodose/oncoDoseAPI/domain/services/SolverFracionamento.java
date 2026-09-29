@@ -132,7 +132,8 @@ public final class SolverFracionamento {
                     for (int k = 0; k < x[i][j].length; k++) {
                         double fracao = x[i][j][k].solutionValue();
                         if (fracao > EPS) {
-                            alocacoes.add(new Alocacao(i, j, k, fracao));
+                            // Tolerância numérica do solver pode passar de 1 por ~1e-9; a V3 exige fracao <= 1.
+                            alocacoes.add(new Alocacao(i, j, k, Math.min(1, fracao)));
                         }
                     }
                 }
@@ -142,5 +143,14 @@ public final class SolverFracionamento {
         } finally {
             solver.delete();
         }
+    }
+
+    /**
+     * Linha de base "empírica": cada paciente recebe a combinação de frascos mais barata
+     * só para ele, sem dividir frasco com ninguém. A economia do modelo é o ganho de dividir.
+     */
+    // ponytail: cada paciente vê o estoque cheio (não desconta o que o anterior usou); descontar se o baseline precisar respeitar estoque
+    public static double custoSemCompartilhamento(List<Double> doses, List<TipoFrasco> tipos) {
+        return doses.stream().mapToDouble(d -> resolver(List.of(d), tipos).custoTotal()).sum();
     }
 }

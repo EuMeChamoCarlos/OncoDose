@@ -29,6 +29,9 @@ class SolverFracionamentoTest {
         assertThat(s.custoTotal()).isCloseTo(704, within(1e-6));
         assertThat(s.desperdicioMg()).isCloseTo(120, within(1e-6));
         assertSolucaoValida(s, d, tipos);
+
+        // Sem dividir frasco: 300→500 (126), 570→500+250 (200), 490→500 (126), 1270→3×500 (378).
+        assertThat(SolverFracionamento.custoSemCompartilhamento(d, tipos)).isCloseTo(830, within(1e-6));
     }
 
     /** Gencitabina 08/11 do artigo: 3488 mg com frascos de 200 mg (US$ 16) e 1 g (US$ 48). */
