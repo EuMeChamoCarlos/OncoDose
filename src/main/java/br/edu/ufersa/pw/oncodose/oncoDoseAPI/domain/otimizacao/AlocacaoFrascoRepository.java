@@ -12,4 +12,6 @@ public interface AlocacaoFrascoRepository extends JpaRepository<AlocacaoFrasco, 
     List<AlocacaoFrasco> findByOtimizacaoId(UUID otimizacaoId);
 
     boolean existsByPrescricaoId(UUID prescricaoId);
+
+    boolean existsByApresentacaoId(UUID apresentacaoId);
 }
