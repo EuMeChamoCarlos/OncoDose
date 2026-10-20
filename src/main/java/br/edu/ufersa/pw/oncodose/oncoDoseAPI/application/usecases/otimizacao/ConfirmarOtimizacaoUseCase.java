@@ -1,5 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.FrascoIndisponivelException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
@@ -8,6 +9,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.Otimizacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.OtimizacaoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.StatusOtimizacao;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
@@ -57,6 +59,13 @@ public class ConfirmarOtimizacaoUseCase {
                         "estoque atual menor que os " + quantidade + " frasco(s) do plano; otimize de novo");
             }
         });
+
+        // Preparo feito = aplicação realizada: sai da agenda remarcável (fase 3/4) e o ciclo vira histórico.
+        otimizacao.getAlocacoes().stream()
+                .map(a -> a.getPrescricao().getAplicacao())
+                .filter(Objects::nonNull)
+                .distinct()
+                .forEach(Aplicacao::marcarRealizada);
 
         otimizacao.confirmar();
         return otimizacao;

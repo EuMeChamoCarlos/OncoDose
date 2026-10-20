@@ -1,5 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.StatusAplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.PrescricaoInvalidaException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
 import jakarta.persistence.*;
@@ -8,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -40,20 +43,36 @@ public class Prescricao {
     @Column(nullable = false)
     private StatusPrescricao status;
 
+    /** Data de emissão. O dia do preparo é a data agendada da aplicação, quando houver. */
     @Column(name = "data_prescricao", nullable = false)
     private LocalDate dataPrescricao;
 
-    public static Prescricao nova(String codigoPrescricao, Medicamento medicamento,
-                                  Double doseMg, StatusPrescricao status, LocalDate dataPrescricao) {
+    /** Aplicação da agenda que esta prescrição libera; null no legado (sem ciclo). */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aplicacao_id", unique = true)
+    private Aplicacao aplicacao;
+
+    /** aplicacao é opcional e, como código e medicamento, não muda depois. */
+    public static Prescricao nova(String codigoPrescricao, Medicamento medicamento, Double doseMg,
+                                  StatusPrescricao status, LocalDate dataPrescricao, Aplicacao aplicacao) {
         if (codigoPrescricao == null || !codigoPrescricao.matches(PADRAO_CODIGO)) {
             throw new PrescricaoInvalidaException(codigoPrescricao, "código fora do padrão PRE0000-000000");
         }
         if (medicamento == null) {
             throw new PrescricaoInvalidaException(codigoPrescricao, "medicamento obrigatório");
         }
+        if (aplicacao != null) {
+            if (!Objects.equals(aplicacao.getCiclo().getMedicamento().getId(), medicamento.getId())) {
+                throw new PrescricaoInvalidaException(codigoPrescricao, "aplicação é de outro medicamento");
+            }
+            if (aplicacao.getStatus() != StatusAplicacao.AGENDADA) {
+                throw new PrescricaoInvalidaException(codigoPrescricao, "aplicação já está " + aplicacao.getStatus());
+            }
+        }
         Prescricao prescricao = new Prescricao();
         prescricao.codigoPrescricao = codigoPrescricao;
         prescricao.medicamento = medicamento;
+        prescricao.aplicacao = aplicacao;
         prescricao.atualizar(doseMg, status, dataPrescricao);
         return prescricao;
     }

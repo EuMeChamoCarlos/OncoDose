@@ -72,6 +72,14 @@ public class Aplicacao {
         this.diasDepois = diasDepois;
     }
 
+    /** Preparo confirmado. Idempotente: confirmar de novo não muda nada. */
+    public void marcarRealizada() {
+        if (status == StatusAplicacao.CANCELADA) {
+            throw new CicloInvalidoException(ciclo.getCodigoCiclo(), "aplicação " + numero + " está cancelada");
+        }
+        this.status = StatusAplicacao.REALIZADA;
+    }
+
     public LocalDate inicioJanela() {
         return dataPrevista.minusDays(diasAntes);
     }

@@ -8,6 +8,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -18,9 +20,22 @@ public interface PrescricaoRepository
 
     boolean existsByMedicamentoId(UUID medicamentoId);
 
-    /** Pacientes i de uma instância do modelo: prescrições APTO do medicamento no dia. */
-    List<Prescricao> findByMedicamentoIdAndDataPrescricaoAndStatus(
-            UUID medicamentoId, LocalDate dataPrescricao, StatusPrescricao status);
+    boolean existsByAplicacaoId(UUID aplicacaoId);
+
+    boolean existsByAplicacaoCicloId(UUID cicloId);
+
+    /**
+     * Pacientes i de uma instância do modelo: prescrições do medicamento com o status pedido cujo
+     * dia de preparo é {@code data} — a data agendada da aplicação ou, no legado sem aplicação,
+     * a data da prescrição. Ordem por código: o plano sai igual a cada execução.
+     */
+    @Query("""
+            select p from Prescricao p left join p.aplicacao a
+            where p.medicamento.id = :medicamentoId and p.status = :status
+              and ((a is not null and a.dataAgendada = :data) or (a is null and p.dataPrescricao = :data))
+            order by p.codigoPrescricao""")
+    List<Prescricao> buscarDoDia(@Param("medicamentoId") UUID medicamentoId, @Param("data") LocalDate data,
+                                 @Param("status") StatusPrescricao status);
 
     /**
      * Filtros opcionais: null ignora o critério. Specification em vez de
