@@ -116,3 +116,15 @@ FROM ciclo c
 CROSS JOIN LATERAL generate_series(1, c.total_aplicacoes) AS n
 WHERE c.codigo_ciclo BETWEEN 'CIC2026-000001' AND 'CIC2026-000010'
 ON CONFLICT (ciclo_id, numero) DO NOTHING;
+
+-- Prescrições do cenário (FICTÍCIO): liberam as aplicações de 26 e 27/10, emitidas em 23/10.
+-- A otimização de 27/10 acha os 9 pacientes pela data agendada, não pela data de emissão.
+-- Código derivado do ciclo (CIC2026-000007 → PRE2026-000207); sem alvo no ON CONFLICT para
+-- cobrir também o UNIQUE de aplicacao_id.
+INSERT INTO prescricao (codigo_prescricao, medicamento_id, dose_mg, status, data_prescricao, aplicacao_id)
+SELECT 'PRE2026-0002' || right(c.codigo_ciclo, 2), c.medicamento_id, c.dose_mg, 'APTO', DATE '2026-10-23', a.id
+FROM aplicacao a
+JOIN ciclo c ON c.id = a.ciclo_id
+WHERE c.codigo_ciclo BETWEEN 'CIC2026-000001' AND 'CIC2026-000010'
+  AND a.data_prevista IN (DATE '2026-10-26', DATE '2026-10-27')
+ON CONFLICT DO NOTHING;

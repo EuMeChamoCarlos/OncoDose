@@ -119,4 +119,21 @@ class CicloTest {
                 .isInstanceOf(CicloInvalidoException.class).hasMessageContaining("fora da nova janela");
         assertThat(terceira.getDiasDepois()).isEqualTo(2);
     }
+
+    /** Preparo confirmado: a aplicação vira histórico — não remarca, não muda janela, ciclo não se apaga. */
+    @Test
+    void aplicacaoRealizadaSaiDaAgenda() {
+        Ciclo c = ciclo(0, 1);
+        Aplicacao terceira = aplicacao(c, 3);
+
+        terceira.marcarRealizada();
+        terceira.marcarRealizada();
+
+        assertThat(terceira.getStatus()).isEqualTo(StatusAplicacao.REALIZADA);
+        assertThat(c.possuiAplicacaoEncerrada()).isTrue();
+        assertThatThrownBy(() -> c.reagendar(3, LocalDate.of(2026, 10, 27)))
+                .isInstanceOf(ReagendamentoInvalidoException.class).hasMessageContaining("REALIZADA");
+        assertThatThrownBy(() -> terceira.definirJanela(1, 1))
+                .isInstanceOf(CicloInvalidoException.class).hasMessageContaining("REALIZADA");
+    }
 }

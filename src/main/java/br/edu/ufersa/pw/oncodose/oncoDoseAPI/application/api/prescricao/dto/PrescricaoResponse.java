@@ -7,7 +7,8 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 public record PrescricaoResponse(UUID id, String codigoPrescricao, UUID medicamentoId,
-                                 Double doseMg, StatusPrescricao status, LocalDate dataPrescricao) {
+                                 Double doseMg, StatusPrescricao status, LocalDate dataPrescricao,
+                                 UUID aplicacaoId) {
     public static PrescricaoResponse fromPrescricao(Prescricao prescricao) {
         return new PrescricaoResponse(
                 prescricao.getId(),
@@ -15,7 +16,8 @@ public record PrescricaoResponse(UUID id, String codigoPrescricao, UUID medicame
                 prescricao.getMedicamento().getId(),
                 prescricao.getDoseMg(),
                 prescricao.getStatus(),
-                prescricao.getDataPrescricao()
+                prescricao.getDataPrescricao(),
+                prescricao.getAplicacao() == null ? null : prescricao.getAplicacao().getId()
         );
     }
 }

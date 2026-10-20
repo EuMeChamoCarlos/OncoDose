@@ -53,8 +53,7 @@ public class OtimizarDiaUseCase {
         Medicamento medicamento = medicamentoRepository.findById(medicamentoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Medicamento", medicamentoId));
 
-        List<Prescricao> prescricoes = prescricaoRepository
-                .findByMedicamentoIdAndDataPrescricaoAndStatus(medicamentoId, data, StatusPrescricao.APTO);
+        List<Prescricao> prescricoes = prescricaoRepository.buscarDoDia(medicamentoId, data, StatusPrescricao.APTO);
         if (prescricoes.isEmpty()) {
             throw new RecursoNaoEncontradoException("Prescrição APTO", "medicamento=" + medicamentoId + " data=" + data);
         }
