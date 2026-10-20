@@ -1,5 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.exception;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.CicloInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.CredenciaisInvalidasException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.DocumentoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.DomainException;
@@ -93,7 +94,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({PrescricaoInvalidaException.class, DocumentoInvalidoException.class,
-            MedicamentoInvalidoException.class})
+            MedicamentoInvalidoException.class, CicloInvalidoException.class})
     public ProblemDetail handleBadRequest(DomainException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         problem.setTitle("Violação de regra de negócio");

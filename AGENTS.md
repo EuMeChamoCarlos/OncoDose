@@ -12,7 +12,7 @@ Spring Boot 4.1.1 backend (oncoDoseAPI). Requires JDK 21 (`JAVA_HOME=C:\Users\Se
 - **Spring Boot 4 uses modular starters.** Use `spring-boot-starter-webmvc`, `spring-boot-starter-security`, `spring-boot-starter-validation` (already declared in `pom.xml`). The old `spring-boot-starter-web` and test starters like `spring-boot-starter-webmvc-test` are split into `*-test` artifacts — do not re-introduce legacy starter names.
 - Package root is `br.edu.ufersa.pw.oncodose.oncoDoseAPI` — note the mixed-case segment. Put all new classes under this tree (NOT `br.edu.ufersa.oncodose` from the refactor docs).
 - Lombok is already wired via explicit `annotationProcessorPaths` in `pom.xml` (main + test). Just use annotations; no extra config.
-- Postgres + Flyway V1-V3 applied (`jdbc:postgresql://localhost:5432/onco_dose`, `ddl-auto=validate`). Context test needs a running Postgres.
+- Postgres + Flyway V1-V7 applied (`jdbc:postgresql://localhost:5432/onco_dose`, `ddl-auto=validate`; V7 = `ciclo`/`aplicacao`). Context test needs a running Postgres.
 - Security: `SecurityConfig` + `SecurityFilter` + JWT (`ROLE_USER`/`ROLE_ADMIN`, hierarchy `ADMIN → USER`). `@PreAuthorize` failures are mapped to 403 `ProblemDetail` by `GlobalExceptionHandler`, not by the filter chain.
 - `HELP.md` is Initializr boilerplate and gitignored — ignore it.
 - `POST /api/users` always creates a USER. Promote to ADMIN manually: `UPDATE users SET role_id = (SELECT id FROM roles WHERE name = 'ADMIN') WHERE auth_id = (SELECT id FROM auths WHERE username = '<email>');`

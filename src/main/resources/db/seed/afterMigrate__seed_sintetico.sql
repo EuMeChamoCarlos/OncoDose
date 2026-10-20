@@ -86,3 +86,33 @@ FROM (VALUES
 ) AS v(codigo, nome, dose, status, data)
 JOIN medicamento m ON m.nome = v.nome
 ON CONFLICT (codigo_prescricao) DO NOTHING;
+
+-- Ciclos (FICTÍCIO): cenário da agenda. Paclitaxel a cada 21 dias (mínimo 19): 9 ciclos têm
+-- aplicação em 27/10/2026 e o CIC2026-000010 cai sozinho em 26/10 (3ª aplicação), com janela
+-- de +1 dia — o planejador deve sugerir juntá-lo ao grupo de 27/10.
+INSERT INTO ciclo (codigo_ciclo, medicamento_id, dose_mg, data_inicio, total_aplicacoes,
+                   intervalo_dias, intervalo_minimo_dias)
+SELECT v.codigo, m.id, v.dose, v.inicio::date, v.total, 21, 19
+FROM (VALUES
+    ('CIC2026-000001', 260, '2026-10-27', 6),   -- 27/10 = 1ª aplicação
+    ('CIC2026-000002', 175, '2026-10-06', 6),   -- 27/10 = 2ª
+    ('CIC2026-000003',  80, '2026-09-15', 6),   -- 27/10 = 3ª
+    ('CIC2026-000004', 135, '2026-08-25', 6),   -- 27/10 = 4ª
+    ('CIC2026-000005', 150, '2026-10-27', 4),
+    ('CIC2026-000006', 210, '2026-10-06', 4),
+    ('CIC2026-000007',  95, '2026-09-15', 6),
+    ('CIC2026-000008', 120, '2026-10-27', 6),
+    ('CIC2026-000009', 190, '2026-10-06', 4),
+    ('CIC2026-000010', 175, '2026-09-14', 6)    -- 14/09, 05/10, 26/10 (isolado), 16/11...
+) AS v(codigo, dose, inicio, total)
+JOIN medicamento m ON m.nome = 'Paclitaxel'
+ON CONFLICT (codigo_ciclo) DO NOTHING;
+
+-- Aplicações projetadas: data_prevista = data_inicio + (n-1)·intervalo; agendada começa igual.
+INSERT INTO aplicacao (ciclo_id, numero, data_prevista, data_agendada, dias_antes, dias_depois, status)
+SELECT c.id, n, c.data_inicio + (n - 1) * c.intervalo_dias, c.data_inicio + (n - 1) * c.intervalo_dias,
+       0, CASE WHEN c.codigo_ciclo = 'CIC2026-000010' THEN 1 ELSE 0 END, 'AGENDADA'
+FROM ciclo c
+CROSS JOIN LATERAL generate_series(1, c.total_aplicacoes) AS n
+WHERE c.codigo_ciclo BETWEEN 'CIC2026-000001' AND 'CIC2026-000010'
+ON CONFLICT (ciclo_id, numero) DO NOTHING;
