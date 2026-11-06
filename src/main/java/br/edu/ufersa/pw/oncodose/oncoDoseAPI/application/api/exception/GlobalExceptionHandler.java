@@ -5,6 +5,7 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.CredenciaisInvalid
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.DocumentoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.DomainException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.MedicamentoInvalidoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.PeriodoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.PrescricaoInvalidaException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
@@ -94,7 +95,7 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({PrescricaoInvalidaException.class, DocumentoInvalidoException.class,
-            MedicamentoInvalidoException.class, CicloInvalidoException.class})
+            MedicamentoInvalidoException.class, CicloInvalidoException.class, PeriodoInvalidoException.class})
     public ProblemDetail handleBadRequest(DomainException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
         problem.setTitle("Violação de regra de negócio");
