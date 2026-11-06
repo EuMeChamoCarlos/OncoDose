@@ -85,46 +85,59 @@ FROM (VALUES
     ('PRE2026-000133', 'Paclitaxel',      135, 'APTO', '2026-04-02')
 ) AS v(codigo, nome, dose, status, data)
 JOIN medicamento m ON m.nome = v.nome
-ON CONFLICT (codigo_prescricao) DO NOTHING;
+ON CONFLICT (codigo_prescricao, medicamento_id) DO NOTHING;
 
--- Ciclos (FICTÍCIO): cenário da agenda. Paclitaxel a cada 21 dias (mínimo 19): 9 ciclos têm
--- aplicação em 27/10/2026 e o CIC2026-000010 cai sozinho em 26/10 (3ª aplicação), com janela
+-- Protocolos (FICTÍCIO): cenário da agenda. Paclitaxel a cada 21 dias (mínimo 19): 9 protocolos têm
+-- aplicação em 27/10/2026 e o PTC2026-000010 cai sozinho em 26/10 (3ª aplicação), com janela
 -- de +1 dia — o planejador deve sugerir juntá-lo ao grupo de 27/10.
-INSERT INTO ciclo (codigo_ciclo, medicamento_id, dose_mg, data_inicio, total_aplicacoes,
-                   intervalo_dias, intervalo_minimo_dias)
-SELECT v.codigo, m.id, v.dose, v.inicio::date, v.total, 21, 19
+INSERT INTO protocolo_paciente (codigo_protocolo, medicacao_subtipo, data_inicio, ciclos,
+                                dias_intervalo, intervalo_minimo_dias)
+SELECT v.codigo, 'Paclitaxel', v.inicio::date, v.total, 21, 19
 FROM (VALUES
-    ('CIC2026-000001', 260, '2026-10-27', 6),   -- 27/10 = 1ª aplicação
-    ('CIC2026-000002', 175, '2026-10-06', 6),   -- 27/10 = 2ª
-    ('CIC2026-000003',  80, '2026-09-15', 6),   -- 27/10 = 3ª
-    ('CIC2026-000004', 135, '2026-08-25', 6),   -- 27/10 = 4ª
-    ('CIC2026-000005', 150, '2026-10-27', 4),
-    ('CIC2026-000006', 210, '2026-10-06', 4),
-    ('CIC2026-000007',  95, '2026-09-15', 6),
-    ('CIC2026-000008', 120, '2026-10-27', 6),
-    ('CIC2026-000009', 190, '2026-10-06', 4),
-    ('CIC2026-000010', 175, '2026-09-14', 6)    -- 14/09, 05/10, 26/10 (isolado), 16/11...
-) AS v(codigo, dose, inicio, total)
+    ('PTC2026-000001', '2026-10-27', 6),   -- 27/10 = 1ª aplicação
+    ('PTC2026-000002', '2026-10-06', 6),   -- 27/10 = 2ª
+    ('PTC2026-000003', '2026-09-15', 6),   -- 27/10 = 3ª
+    ('PTC2026-000004', '2026-08-25', 6),   -- 27/10 = 4ª
+    ('PTC2026-000005', '2026-10-27', 4),
+    ('PTC2026-000006', '2026-10-06', 4),
+    ('PTC2026-000007', '2026-09-15', 6),
+    ('PTC2026-000008', '2026-10-27', 6),
+    ('PTC2026-000009', '2026-10-06', 4),
+    ('PTC2026-000010', '2026-09-14', 6)    -- 14/09, 05/10, 26/10 (isolado), 16/11...
+) AS v(codigo, inicio, total)
+ON CONFLICT (codigo_protocolo) DO NOTHING;
+
+INSERT INTO protocolo_medicamento (protocolo_id, medicamento_id, dose_mg, via, dias_aplicacao)
+SELECT p.id, m.id, v.dose, 'IV', 'D1'
+FROM (VALUES
+    ('PTC2026-000001', 260), ('PTC2026-000002', 175), ('PTC2026-000003',  80),
+    ('PTC2026-000004', 135), ('PTC2026-000005', 150), ('PTC2026-000006', 210),
+    ('PTC2026-000007',  95), ('PTC2026-000008', 120), ('PTC2026-000009', 190),
+    ('PTC2026-000010', 175)
+) AS v(codigo, dose)
+JOIN protocolo_paciente p ON p.codigo_protocolo = v.codigo
 JOIN medicamento m ON m.nome = 'Paclitaxel'
-ON CONFLICT (codigo_ciclo) DO NOTHING;
+ON CONFLICT (protocolo_id, medicamento_id) DO NOTHING;
 
 -- Aplicações projetadas: data_prevista = data_inicio + (n-1)·intervalo; agendada começa igual.
-INSERT INTO aplicacao (ciclo_id, numero, data_prevista, data_agendada, dias_antes, dias_depois, status)
-SELECT c.id, n, c.data_inicio + (n - 1) * c.intervalo_dias, c.data_inicio + (n - 1) * c.intervalo_dias,
-       0, CASE WHEN c.codigo_ciclo = 'CIC2026-000010' THEN 1 ELSE 0 END, 'AGENDADA'
-FROM ciclo c
-CROSS JOIN LATERAL generate_series(1, c.total_aplicacoes) AS n
-WHERE c.codigo_ciclo BETWEEN 'CIC2026-000001' AND 'CIC2026-000010'
-ON CONFLICT (ciclo_id, numero) DO NOTHING;
+INSERT INTO aplicacao (protocolo_id, numero, ciclo_numero, dia_ciclo, data_prevista, data_agendada,
+                       dias_antes, dias_depois, status)
+SELECT p.id, n, n, 1, p.data_inicio + (n - 1) * p.dias_intervalo, p.data_inicio + (n - 1) * p.dias_intervalo,
+       0, CASE WHEN p.codigo_protocolo = 'PTC2026-000010' THEN 1 ELSE 0 END, 'AGENDADA'
+FROM protocolo_paciente p
+CROSS JOIN LATERAL generate_series(1, p.ciclos) AS n
+WHERE p.codigo_protocolo BETWEEN 'PTC2026-000001' AND 'PTC2026-000010'
+ON CONFLICT DO NOTHING;
 
 -- Prescrições do cenário (FICTÍCIO): liberam as aplicações de 26 e 27/10, emitidas em 23/10.
 -- A otimização de 27/10 acha os 9 pacientes pela data agendada, não pela data de emissão.
--- Código derivado do ciclo (CIC2026-000007 → PRE2026-000207); sem alvo no ON CONFLICT para
--- cobrir também o UNIQUE de aplicacao_id.
+-- Código derivado do protocolo (PTC2026-000007 → PRE2026-000207); sem alvo no ON CONFLICT para
+-- cobrir também o UNIQUE de aplicação e medicamento.
 INSERT INTO prescricao (codigo_prescricao, medicamento_id, dose_mg, status, data_prescricao, aplicacao_id)
-SELECT 'PRE2026-0002' || right(c.codigo_ciclo, 2), c.medicamento_id, c.dose_mg, 'APTO', DATE '2026-10-23', a.id
+SELECT 'PRE2026-0002' || right(p.codigo_protocolo, 2), pm.medicamento_id, pm.dose_mg, 'APTO', DATE '2026-10-23', a.id
 FROM aplicacao a
-JOIN ciclo c ON c.id = a.ciclo_id
-WHERE c.codigo_ciclo BETWEEN 'CIC2026-000001' AND 'CIC2026-000010'
+JOIN protocolo_paciente p ON p.id = a.protocolo_id
+JOIN protocolo_medicamento pm ON pm.protocolo_id = p.id
+WHERE p.codigo_protocolo BETWEEN 'PTC2026-000001' AND 'PTC2026-000010'
   AND a.data_prevista IN (DATE '2026-10-26', DATE '2026-10-27')
 ON CONFLICT DO NOTHING;

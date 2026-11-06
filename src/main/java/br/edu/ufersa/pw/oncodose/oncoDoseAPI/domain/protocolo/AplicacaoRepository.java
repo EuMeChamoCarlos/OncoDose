@@ -1,4 +1,4 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -15,12 +15,12 @@ import java.util.UUID;
 public record PreviaAgendaResponse(UUID medicamentoId, LocalDate inicio, LocalDate fim,
                                    BigDecimal ganhoTotal, long tempoMs, List<SugestaoResponse> sugestoes) {
 
-    public record SugestaoResponse(UUID aplicacaoId, String codigoCiclo, int numero,
+    public record SugestaoResponse(UUID aplicacaoId, String codigoProtocolo, int numero,
                                    LocalDate origem, LocalDate destino, BigDecimal ganho) {}
 
     public static PreviaAgendaResponse fromPrevia(Previa previa) {
         List<SugestaoResponse> sugestoes = previa.sugestoes().stream()
-                .map(s -> new SugestaoResponse(s.aplicacaoId(), s.codigoCiclo(), s.numero(),
+                .map(s -> new SugestaoResponse(s.aplicacaoId(), s.codigoProtocolo(), s.numero(),
                         s.origem(), s.destino(), dinheiro(s.ganho())))
                 .toList();
         return new PreviaAgendaResponse(previa.medicamentoId(), previa.inicio(), previa.fim(),

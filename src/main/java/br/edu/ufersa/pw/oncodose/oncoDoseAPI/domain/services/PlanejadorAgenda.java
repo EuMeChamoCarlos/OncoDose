@@ -28,11 +28,11 @@ public final class PlanejadorAgenda {
      * movivel = false: só serve de vizinha no intervalo mínimo (realizada, fora do período...).
      * Canceladas não entram no cenário.
      */
-    public record AplicacaoPlanejada(UUID id, UUID cicloId, String codigoCiclo, int numero, Double doseMg,
+    public record AplicacaoPlanejada(UUID id, UUID protocoloId, String codigoProtocolo, int numero, Double doseMg,
                                      LocalDate data, LocalDate inicioJanela, LocalDate fimJanela,
                                      int intervaloMinimoDias, boolean movivel) {}
 
-    public record Sugestao(UUID aplicacaoId, String codigoCiclo, int numero,
+    public record Sugestao(UUID aplicacaoId, String codigoProtocolo, int numero,
                            LocalDate origem, LocalDate destino, double ganho) {}
 
     private static final double EPS = 1e-2;  // ganho mínimo: um centavo
@@ -52,11 +52,11 @@ public final class PlanejadorAgenda {
         Set<UUID> movidas = new HashSet<>();
         List<Sugestao> sugestoes = new ArrayList<>();
 
-        // Ordem fixa: em empate de ganho vence a primeira (origem, ciclo, número, destino) → resultado reprodutível.
+        // Ordem fixa: em empate de ganho vence a primeira (origem, protocolo, número, destino) → resultado reprodutível.
         List<AplicacaoPlanejada> candidatas = aplicacoes.stream()
                 .filter(a -> a.movivel() && a.doseMg() != null)
                 .sorted(Comparator.comparing(AplicacaoPlanejada::data)
-                        .thenComparing(AplicacaoPlanejada::codigoCiclo)
+                        .thenComparing(AplicacaoPlanejada::codigoProtocolo)
                         .thenComparingInt(AplicacaoPlanejada::numero))
                 .toList();
 
@@ -87,7 +87,7 @@ public final class PlanejadorAgenda {
                             - custoOrigemSem - custo(destinoCom, tipos, cache);
                     // Infinito/NaN = algum dia sem estoque para a demanda: movimento descartado.
                     if (Double.isFinite(ganho) && ganho > EPS && (melhor == null || ganho > melhor.ganho() + EPS)) {
-                        melhor = new Sugestao(a.id(), a.codigoCiclo(), a.numero(), origem, destino, ganho);
+                        melhor = new Sugestao(a.id(), a.codigoProtocolo(), a.numero(), origem, destino, ganho);
                     }
                 }
             }
@@ -100,13 +100,13 @@ public final class PlanejadorAgenda {
         }
     }
 
-    /** Mesma regra de Ciclo.reagendar, mas contra as datas já simuladas das vizinhas. */
+    /** Mesma regra de ProtocoloPaciente.reagendar, mas contra as datas já simuladas das vizinhas. */
     private static boolean respeitaIntervalo(AplicacaoPlanejada a, LocalDate destino,
                                              List<AplicacaoPlanejada> aplicacoes, Map<UUID, LocalDate> data) {
-        List<AplicacaoPlanejada> doCiclo = aplicacoes.stream().filter(v -> v.cicloId().equals(a.cicloId())).toList();
-        Optional<AplicacaoPlanejada> anterior = doCiclo.stream().filter(v -> v.numero() < a.numero())
+        List<AplicacaoPlanejada> doProtocolo = aplicacoes.stream().filter(v -> v.protocoloId().equals(a.protocoloId())).toList();
+        Optional<AplicacaoPlanejada> anterior = doProtocolo.stream().filter(v -> v.numero() < a.numero())
                 .max(Comparator.comparingInt(AplicacaoPlanejada::numero));
-        Optional<AplicacaoPlanejada> seguinte = doCiclo.stream().filter(v -> v.numero() > a.numero())
+        Optional<AplicacaoPlanejada> seguinte = doProtocolo.stream().filter(v -> v.numero() > a.numero())
                 .min(Comparator.comparingInt(AplicacaoPlanejada::numero));
         return anterior.map(v -> ChronoUnit.DAYS.between(data.get(v.id()), destino) >= a.intervaloMinimoDias()).orElse(true)
                 && seguinte.map(v -> ChronoUnit.DAYS.between(destino, data.get(v.id())) >= a.intervaloMinimoDias()).orElse(true);

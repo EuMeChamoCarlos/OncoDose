@@ -1,21 +1,21 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.StatusAplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.PrescricaoInvalidaException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.StatusAplicacao;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Entidade rica: prescrição anonimizada (LGPD). Guarda só código, medicamento,
- * dose (d_i do modelo) e status; nasce por {@link #nova} e muda por {@link #atualizar}.
+ * Entidade rica: uma linha da prescrição anonimizada (LGPD), uma por quimioterápico. Guarda só
+ * código, medicamento, dose (d_i do modelo) e status; nasce por {@link #nova} e muda por
+ * {@link #atualizar}. O mesmo código pode se repetir em outro medicamento.
  */
 @Getter
 @Entity
@@ -29,7 +29,7 @@ public class Prescricao {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(name = "codigo_prescricao", nullable = false, unique = true)
+    @Column(name = "codigo_prescricao", nullable = false)
     private String codigoPrescricao;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -47,9 +47,9 @@ public class Prescricao {
     @Column(name = "data_prescricao", nullable = false)
     private LocalDate dataPrescricao;
 
-    /** Aplicação da agenda que esta prescrição libera; null no legado (sem ciclo). */
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "aplicacao_id", unique = true)
+    /** Aplicação da agenda que esta linha libera; null no legado (sem protocolo). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "aplicacao_id")
     private Aplicacao aplicacao;
 
     /** aplicacao é opcional e, como código e medicamento, não muda depois. */
@@ -62,7 +62,7 @@ public class Prescricao {
             throw new PrescricaoInvalidaException(codigoPrescricao, "medicamento obrigatório");
         }
         if (aplicacao != null) {
-            if (!Objects.equals(aplicacao.getCiclo().getMedicamento().getId(), medicamento.getId())) {
+            if (!aplicacao.preve(medicamento)) {
                 throw new PrescricaoInvalidaException(codigoPrescricao, "aplicação é de outro medicamento");
             }
             if (aplicacao.getStatus() != StatusAplicacao.AGENDADA) {
@@ -77,7 +77,7 @@ public class Prescricao {
         return prescricao;
     }
 
-    /** Código e medicamento são a identidade da prescrição; o resto pode ser corrigido. */
+    /** Código e medicamento são a identidade da linha; o resto pode ser corrigido. */
     public void atualizar(Double doseMg, StatusPrescricao status, LocalDate dataPrescricao) {
         if (doseMg == null || doseMg <= 0) {
             throw new PrescricaoInvalidaException(codigoPrescricao, "dose deve ser maior que zero");

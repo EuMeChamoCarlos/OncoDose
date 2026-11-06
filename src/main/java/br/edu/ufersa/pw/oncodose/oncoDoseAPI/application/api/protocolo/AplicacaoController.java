@@ -1,8 +1,8 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.ciclo;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.protocolo;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.ciclo.dto.AplicacaoResponse;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.ciclo.dto.JanelaRequest;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.ciclo.DefinirJanelaAplicacaoUseCase;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.protocolo.dto.AplicacaoResponse;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.protocolo.dto.JanelaRequest;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.protocolo.DefinirJanelaAplicacaoUseCase;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

@@ -1,17 +1,20 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.CicloInvalidoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.ProtocoloInvalidoException;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Uma aplicação projetada do ciclo. Nasce só por {@link Ciclo#novo}; a data agendada só muda
- * por {@link Ciclo#reagendar}, que conhece as vizinhas.
+ * Uma aplicação projetada do protocolo, como uma linha da tela Ciclos do Tasy. Nasce só por
+ * {@link ProtocoloPaciente#novo}; a data agendada só muda por {@link ProtocoloPaciente#reagendar},
+ * que conhece as vizinhas.
  */
 @Getter
 @Entity
@@ -23,17 +26,28 @@ public class Aplicacao {
     private UUID id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ciclo_id", nullable = false)
-    private Ciclo ciclo;
+    @JoinColumn(name = "protocolo_id", nullable = false)
+    private ProtocoloPaciente protocolo;
 
+    /** Posição na sequência de todas as aplicações do protocolo: define as vizinhas. */
     @Column(nullable = false)
     private Integer numero;
+
+    @Column(name = "ciclo_numero", nullable = false)
+    private Integer cicloNumero;
+
+    /** "Dia ciclo" do Tasy: 8 em D8. */
+    @Column(name = "dia_ciclo", nullable = false)
+    private Integer diaCiclo;
 
     @Column(name = "data_prevista", nullable = false)
     private LocalDate dataPrevista;
 
     @Column(name = "data_agendada", nullable = false)
     private LocalDate dataAgendada;
+
+    @Column(name = "data_real")
+    private LocalDate dataReal;
 
     @Column(name = "dias_antes", nullable = false)
     private Integer diasAntes;
@@ -45,14 +59,24 @@ public class Aplicacao {
     @Column(nullable = false, length = 20)
     private StatusAplicacao status = StatusAplicacao.AGENDADA;
 
-    Aplicacao(Ciclo ciclo, int numero, LocalDate dataPrevista, int diasAntes, int diasDepois) {
-        this.ciclo = ciclo;
+    Aplicacao(ProtocoloPaciente protocolo, int numero, int cicloNumero, int diaCiclo, LocalDate dataPrevista,
+              int diasAntes, int diasDepois) {
+        this.protocolo = protocolo;
         this.numero = numero;
+        this.cicloNumero = cicloNumero;
+        this.diaCiclo = diaCiclo;
         this.dataPrevista = dataPrevista;
         this.dataAgendada = dataPrevista;
         validarJanela(diasAntes, diasDepois);
         this.diasAntes = diasAntes;
         this.diasDepois = diasDepois;
+    }
+
+    /** O medicamento faz parte do protocolo e é aplicado neste dia do ciclo. */
+    public boolean preve(Medicamento medicamento) {
+        return protocolo.getMedicamentos().stream()
+                .anyMatch(m -> Objects.equals(m.getMedicamento().getId(), medicamento.getId())
+                        && m.aplicaNoDia(diaCiclo));
     }
 
     /**
@@ -61,11 +85,11 @@ public class Aplicacao {
      */
     public void definirJanela(int diasAntes, int diasDepois) {
         if (status != StatusAplicacao.AGENDADA) {
-            throw new CicloInvalidoException(ciclo.getCodigoCiclo(), "aplicação " + numero + " já está " + status);
+            throw new ProtocoloInvalidoException(protocolo.getCodigoProtocolo(), "aplicação " + numero + " já está " + status);
         }
         validarJanela(diasAntes, diasDepois);
         if (dataAgendada.isBefore(dataPrevista.minusDays(diasAntes)) || dataAgendada.isAfter(dataPrevista.plusDays(diasDepois))) {
-            throw new CicloInvalidoException(ciclo.getCodigoCiclo(),
+            throw new ProtocoloInvalidoException(protocolo.getCodigoProtocolo(),
                     "aplicação " + numero + " já está agendada para " + dataAgendada + ", fora da nova janela");
         }
         this.diasAntes = diasAntes;
@@ -75,9 +99,12 @@ public class Aplicacao {
     /** Preparo confirmado. Idempotente: confirmar de novo não muda nada. */
     public void marcarRealizada() {
         if (status == StatusAplicacao.CANCELADA) {
-            throw new CicloInvalidoException(ciclo.getCodigoCiclo(), "aplicação " + numero + " está cancelada");
+            throw new ProtocoloInvalidoException(protocolo.getCodigoProtocolo(), "aplicação " + numero + " está cancelada");
         }
-        this.status = StatusAplicacao.REALIZADA;
+        if (status != StatusAplicacao.REALIZADA) {
+            this.status = StatusAplicacao.REALIZADA;
+            this.dataReal = dataAgendada;
+        }
     }
 
     public LocalDate inicioJanela() {
@@ -98,7 +125,7 @@ public class Aplicacao {
 
     private void validarJanela(int diasAntes, int diasDepois) {
         if (diasAntes < 0 || diasDepois < 0) {
-            throw new CicloInvalidoException(ciclo.getCodigoCiclo(), "janela não pode ser negativa");
+            throw new ProtocoloInvalidoException(protocolo.getCodigoProtocolo(), "janela não pode ser negativa");
         }
     }
 }

@@ -1,4 +1,4 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.ciclo.dto;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.protocolo.dto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;

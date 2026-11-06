@@ -1,6 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.medicamento;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.CicloRepository;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloPacienteRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.MedicamentoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.MedicamentoRepository;
@@ -10,22 +10,22 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Caso de uso: exclusão de medicamento. Recusa se houver prescrições (FK RESTRICT, V5) ou ciclos (V7).
+ * Caso de uso: exclusão de medicamento. Recusa se houver prescrições (FK RESTRICT, V5) ou protocolos (V7).
  */
 @Service
 public class DeletarMedicamentoUseCase {
 
     private final MedicamentoRepository medicamentoRepository;
     private final PrescricaoRepository prescricaoRepository;
-    private final CicloRepository cicloRepository;
+    private final ProtocoloPacienteRepository protocoloRepository;
 
     public DeletarMedicamentoUseCase(
             MedicamentoRepository medicamentoRepository,
             PrescricaoRepository prescricaoRepository,
-            CicloRepository cicloRepository) {
+            ProtocoloPacienteRepository protocoloRepository) {
         this.medicamentoRepository = medicamentoRepository;
         this.prescricaoRepository = prescricaoRepository;
-        this.cicloRepository = cicloRepository;
+        this.protocoloRepository = protocoloRepository;
     }
 
     @Transactional
@@ -36,8 +36,8 @@ public class DeletarMedicamentoUseCase {
         if (prescricaoRepository.existsByMedicamentoId(medicamentoId)) {
             throw new MedicamentoInvalidoException("prescricoes", "possui prescrições vinculadas");
         }
-        if (cicloRepository.existsByMedicamentoId(medicamentoId)) {
-            throw new MedicamentoInvalidoException("ciclos", "possui ciclos vinculados");
+        if (protocoloRepository.existsByMedicamentosMedicamentoId(medicamentoId)) {
+            throw new MedicamentoInvalidoException("protocolos", "possui protocolos vinculados");
         }
         medicamentoRepository.deleteById(medicamentoId);
     }

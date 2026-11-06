@@ -1,4 +1,4 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo;
 
 /** APTO/NAO_APTO não mora aqui: é a prescrição (liberação do dia) que decide se o paciente toma. */
 public enum StatusAplicacao {

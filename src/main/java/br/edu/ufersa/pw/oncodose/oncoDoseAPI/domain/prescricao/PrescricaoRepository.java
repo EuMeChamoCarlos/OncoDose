@@ -17,13 +17,13 @@ import org.springframework.stereotype.Repository;
 public interface PrescricaoRepository
         extends JpaRepository<Prescricao, UUID>, JpaSpecificationExecutor<Prescricao> {
 
-    boolean existsByCodigoPrescricao(String codigoPrescricao);
+    boolean existsByCodigoPrescricaoAndMedicamentoId(String codigoPrescricao, UUID medicamentoId);
 
     boolean existsByMedicamentoId(UUID medicamentoId);
 
-    boolean existsByAplicacaoId(UUID aplicacaoId);
+    boolean existsByAplicacaoIdAndMedicamentoId(UUID aplicacaoId, UUID medicamentoId);
 
-    boolean existsByAplicacaoCicloId(UUID cicloId);
+    boolean existsByAplicacaoProtocoloId(UUID protocoloId);
 
     /**
      * Pacientes i de uma instância do modelo: prescrições do medicamento com o status pedido cujo
@@ -38,7 +38,7 @@ public interface PrescricaoRepository
     List<Prescricao> buscarDoDia(@Param("medicamentoId") UUID medicamentoId, @Param("data") LocalDate data,
                                  @Param("status") StatusPrescricao status);
 
-    List<Prescricao> findByAplicacaoIdIn(Collection<UUID> aplicacaoIds);
+    List<Prescricao> findByAplicacaoIdInAndMedicamentoId(Collection<UUID> aplicacaoIds, UUID medicamentoId);
 
     /** Legado (sem aplicação) no período: demanda fixa do dia para o planejador da agenda. */
     @Query("""

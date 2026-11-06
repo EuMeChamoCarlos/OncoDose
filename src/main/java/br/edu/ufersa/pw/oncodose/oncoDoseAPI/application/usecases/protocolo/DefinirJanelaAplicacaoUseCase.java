@@ -1,8 +1,8 @@
-package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.ciclo;
+package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.protocolo;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.ciclo.dto.JanelaRequest;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.AplicacaoRepository;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.protocolo.dto.JanelaRequest;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.AplicacaoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import java.util.UUID;
 import org.springframework.stereotype.Service;

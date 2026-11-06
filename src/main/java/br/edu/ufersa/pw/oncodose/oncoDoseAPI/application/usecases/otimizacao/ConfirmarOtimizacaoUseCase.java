@@ -1,6 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.FrascoIndisponivelException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
@@ -60,7 +60,7 @@ public class ConfirmarOtimizacaoUseCase {
             }
         });
 
-        // Preparo feito = aplicação realizada: sai da agenda remarcável (fase 3/4) e o ciclo vira histórico.
+        // Preparo feito = aplicação realizada: sai da agenda remarcável (fase 3/4) e o protocolo vira histórico.
         otimizacao.getAlocacoes().stream()
                 .map(a -> a.getPrescricao().getAplicacao())
                 .filter(Objects::nonNull)
