@@ -25,6 +25,10 @@ public class AtualizarPrescricaoUseCase {
         Prescricao prescricao = prescricaoRepository.findById(prescricaoId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Prescrição", prescricaoId));
         prescricao.atualizar(request.doseMg(), request.status(), request.dataPrescricao());
+        // Apto/não apto e data valem para a prescrição inteira: as outras linhas acompanham; a dose de cada uma fica.
+        prescricaoRepository.findByCodigoPrescricao(prescricao.getCodigoPrescricao()).stream()
+                .filter(outra -> !outra.getId().equals(prescricao.getId()))
+                .forEach(outra -> outra.atualizar(outra.getDoseMg(), request.status(), request.dataPrescricao()));
         return prescricao;
     }
 }

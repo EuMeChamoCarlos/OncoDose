@@ -1,13 +1,18 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.ciclo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.EstadoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.FrascoIndisponivelException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.frascos.FrascosRepository;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.AlocacaoFrascoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.Otimizacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.OtimizacaoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.StatusOtimizacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.Prescricao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.PrescricaoRepository;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -25,12 +30,18 @@ public class ConfirmarOtimizacaoUseCase {
 
     private final OtimizacaoRepository otimizacaoRepository;
     private final FrascosRepository frascosRepository;
+    private final PrescricaoRepository prescricaoRepository;
+    private final AlocacaoFrascoRepository alocacaoFrascoRepository;
 
     public ConfirmarOtimizacaoUseCase(
             OtimizacaoRepository otimizacaoRepository,
-            FrascosRepository frascosRepository) {
+            FrascosRepository frascosRepository,
+            PrescricaoRepository prescricaoRepository,
+            AlocacaoFrascoRepository alocacaoFrascoRepository) {
         this.otimizacaoRepository = otimizacaoRepository;
         this.frascosRepository = frascosRepository;
+        this.prescricaoRepository = prescricaoRepository;
+        this.alocacaoFrascoRepository = alocacaoFrascoRepository;
     }
 
     @Transactional
@@ -40,6 +51,9 @@ public class ConfirmarOtimizacaoUseCase {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Otimização", otimizacaoId));
         if (otimizacao.isConfirmada()) {
             return otimizacao;
+        }
+        if (otimizacao.isRecusada()) {
+            throw new EstadoInvalidoException("Otimização", otimizacaoId, "plano recusado; otimize de novo");
         }
         if (otimizacaoRepository.existsByMedicamentoIdAndDataReferenciaAndStatus(
                 otimizacao.getMedicamento().getId(), otimizacao.getDataReferencia(), StatusOtimizacao.CONFIRMADA)) {
@@ -60,14 +74,24 @@ public class ConfirmarOtimizacaoUseCase {
             }
         });
 
-        // Preparo feito = aplicação realizada: sai da agenda remarcável (fase 3/4) e o ciclo vira histórico.
+        otimizacao.confirmar();
+
+        // Aplicação realizada só quando todos os quimioterápicos do dia tiverem o preparo confirmado
+        // (no AC, doxorrubicina e ciclofosfamida). Aí ela sai da agenda remarcável e vira histórico.
         otimizacao.getAlocacoes().stream()
                 .map(a -> a.getPrescricao().getAplicacao())
                 .filter(Objects::nonNull)
                 .distinct()
+                .filter(this::todosMedicamentosConfirmados)
                 .forEach(Aplicacao::marcarRealizada);
-
-        otimizacao.confirmar();
         return otimizacao;
+    }
+
+    private boolean todosMedicamentosConfirmados(Aplicacao aplicacao) {
+        List<Prescricao> linhas = prescricaoRepository.findByAplicacaoId(aplicacao.getId());
+        return aplicacao.medicamentosDoDia().stream().allMatch(item -> linhas.stream()
+                .filter(p -> Objects.equals(p.getMedicamento().getId(), item.getMedicamento().getId()))
+                .anyMatch(p -> alocacaoFrascoRepository.existsByPrescricaoIdAndOtimizacaoStatus(
+                        p.getId(), StatusOtimizacao.CONFIRMADA)));
     }
 }

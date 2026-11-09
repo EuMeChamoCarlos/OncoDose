@@ -18,6 +18,7 @@ import java.util.UUID;
  */
 public record OtimizacaoResponse(UUID id, UUID medicamentoId, LocalDate data, StatusOtimizacao status,
                                  LocalDateTime confirmadaEm,
+                                 LocalDateTime recusadaEm, String recusadaPor, String motivoRecusa,
                                  BigDecimal custoOtimizado, BigDecimal custoSemCompartilhamento,
                                  BigDecimal economia, Double desperdicioMg,
                                  List<FrascoAberto> frascosAbertos, List<Alocacao> alocacoes) {
@@ -35,6 +36,9 @@ public record OtimizacaoResponse(UUID id, UUID medicamentoId, LocalDate data, St
                 o.getDataReferencia(),
                 o.getStatus(),
                 o.getConfirmadaEm(),
+                o.getRecusadaEm(),
+                o.getRecusadaPor(),
+                o.getMotivoRecusa(),
                 o.getCustoTotal(),
                 o.getCustoTotal().add(o.getEconomiaVsEmpirico()),
                 o.getEconomiaVsEmpirico(),

@@ -13,5 +13,8 @@ public interface AlocacaoFrascoRepository extends JpaRepository<AlocacaoFrasco, 
 
     boolean existsByPrescricaoId(UUID prescricaoId);
 
+    /** A linha da prescrição já teve o preparo confirmado (otimização CONFIRMADA). */
+    boolean existsByPrescricaoIdAndOtimizacaoStatus(UUID prescricaoId, StatusOtimizacao status);
+
     boolean existsByApresentacaoId(UUID apresentacaoId);
 }

@@ -3,6 +3,7 @@ package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.frascos.dto;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
@@ -18,4 +19,7 @@ public class FrascoRequest {
     @NotNull(message = "O estoque é obrigatório")
     @PositiveOrZero(message = "O estoque não pode ser negativo")
     private Integer quantidadeEstoque;
+
+    @Size(max = 255, message = "A descrição tem no máximo 255 caracteres")
+    private String descricaoTasy;
 }

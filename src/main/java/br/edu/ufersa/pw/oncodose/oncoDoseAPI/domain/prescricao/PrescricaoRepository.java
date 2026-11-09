@@ -1,6 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -16,13 +17,19 @@ import org.springframework.stereotype.Repository;
 public interface PrescricaoRepository
         extends JpaRepository<Prescricao, UUID>, JpaSpecificationExecutor<Prescricao> {
 
-    boolean existsByCodigoPrescricao(String codigoPrescricao);
+    boolean existsByCodigoPrescricaoAndMedicamentoId(String codigoPrescricao, UUID medicamentoId);
 
     boolean existsByMedicamentoId(UUID medicamentoId);
 
-    boolean existsByAplicacaoId(UUID aplicacaoId);
+    /** Uma linha por aplicação, medicamento e dia: o não apto remarcado volta com outra prescrição. */
+    boolean existsByAplicacaoIdAndMedicamentoIdAndDataPrescricao(UUID aplicacaoId, UUID medicamentoId, LocalDate data);
 
-    boolean existsByAplicacaoCicloId(UUID cicloId);
+    boolean existsByAplicacaoProtocoloId(UUID protocoloId);
+
+    /** Todas as linhas (uma por medicamento) de uma prescrição. */
+    List<Prescricao> findByCodigoPrescricao(String codigoPrescricao);
+
+    List<Prescricao> findByAplicacaoId(UUID aplicacaoId);
 
     /**
      * Pacientes i de uma instância do modelo: prescrições do medicamento com o status pedido cujo
@@ -36,6 +43,16 @@ public interface PrescricaoRepository
             order by p.codigoPrescricao""")
     List<Prescricao> buscarDoDia(@Param("medicamentoId") UUID medicamentoId, @Param("data") LocalDate data,
                                  @Param("status") StatusPrescricao status);
+
+    List<Prescricao> findByAplicacaoIdIn(Collection<UUID> aplicacaoIds);
+
+    /** Legado (sem aplicação) no período: demanda fixa do dia para o planejador da agenda. */
+    @Query("""
+            select p from Prescricao p
+            where p.medicamento.id = :medicamentoId and p.status = :status and p.aplicacao is null
+              and p.dataPrescricao between :inicio and :fim""")
+    List<Prescricao> buscarLegadoNoPeriodo(@Param("medicamentoId") UUID medicamentoId, @Param("inicio") LocalDate inicio,
+                                           @Param("fim") LocalDate fim, @Param("status") StatusPrescricao status);
 
     /**
      * Filtros opcionais: null ignora o critério. Specification em vez de
