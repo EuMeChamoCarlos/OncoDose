@@ -74,7 +74,7 @@ class PrescricaoDoDiaTest {
         assertThat(prescricaoRepository.buscarDoDia(a.getId(), DIA, StatusPrescricao.APTO)).hasSize(1);
         assertThat(prescricaoRepository.buscarDoDia(b.getId(), DIA, StatusPrescricao.APTO)).hasSize(1);
         assertThat(prescricaoRepository.existsByCodigoPrescricaoAndMedicamentoId("PRE9999-000020", a.getId())).isTrue();
-        assertThat(prescricaoRepository.existsByAplicacaoIdAndMedicamentoId(primeira.getId(), b.getId())).isTrue();
+        assertThat(prescricaoRepository.existsByAplicacaoIdAndMedicamentoIdAndDataPrescricao(primeira.getId(), b.getId(), DIA)).isTrue();
     }
 
     @Test

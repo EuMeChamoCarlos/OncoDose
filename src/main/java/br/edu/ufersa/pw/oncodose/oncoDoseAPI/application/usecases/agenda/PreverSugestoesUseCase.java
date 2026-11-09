@@ -34,14 +34,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Caso de uso: prévia da agenda (só leitura). Monta o cenário do banco e roda o planejador sem gravar
- * nada; gravar, aceitar e recusar as sugestões vem depois.
+ * Caso de uso: prévia da agenda (só leitura). Monta o cenário do banco e roda o planejador sem gravar nada;
+ * {@link GerarSugestoesUseCase} grava as sugestões para decisão.
  *
  * <p>O medicamento escolhe quais aplicações podem se mover; a aplicação se move inteira, e o ganho conta
  * todos os quimioterápicos intravenosos dela. Para isso entram também os outros pacientes desses
- * medicamentos no período. Dose de cada medicamento: a da linha da prescrição, se houver; senão, a do
- * protocolo. Prescrição NAO_APTO tira a aplicação do custo e da remarcação. Legado (sem aplicação) é
- * demanda fixa. Nada se move de ou para um dia anterior a hoje.
+ * medicamentos no período. Dose de cada medicamento: a da linha da prescrição do dia agendado, se houver;
+ * senão, a do protocolo. Prescrição NAO_APTO do dia agendado tira a aplicação do custo e da remarcação.
+ * Legado (sem aplicação) é demanda fixa. Nada se move de ou para um dia anterior a hoje.
  */
 @Service
 public class PreverSugestoesUseCase {
@@ -50,6 +50,10 @@ public class PreverSugestoesUseCase {
     public static final int MAX_DIAS = 62;
 
     public record Previa(UUID medicamentoId, LocalDate inicio, LocalDate fim, List<Sugestao> sugestoes, long tempoMs) {}
+
+    /** Tudo que o planejador precisa: aplicações (móveis = AGENDADA e com dose), demanda fixa, frascos e dias fechados. */
+    public record Cenario(List<AplicacaoPlanejada> aplicacoes, Map<UUID, Map<LocalDate, List<Double>>> dosesFixas,
+                          Map<UUID, List<TipoFrasco>> tipos, Map<UUID, Set<LocalDate>> diasFechados) {}
 
     private final MedicamentoRepository medicamentoRepository;
     private final ProtocoloPacienteRepository protocoloRepository;
@@ -79,12 +83,33 @@ public class PreverSugestoesUseCase {
             throw new RecursoNaoEncontradoException("Medicamento", medicamentoId);
         }
 
-        // Medicamentos envolvidos: o pedido e os outros intravenosos dos mesmos protocolos (no AC, os dois).
-        List<ProtocoloPaciente> principais = protocoloRepository.buscarComAplicacaoNoPeriodo(medicamentoId, inicio, fim);
-        Set<UUID> medicamentos = new LinkedHashSet<>();
-        medicamentos.add(medicamentoId);
-        principais.forEach(p -> p.getMedicamentos().stream().filter(PreverSugestoesUseCase::intravenoso)
-                .forEach(m -> medicamentos.add(m.getMedicamento().getId())));
+        Cenario cenario = montarCenario(Set.of(medicamentoId), inicio, fim);
+        // Só se movem as aplicações que têm o medicamento pedido; as outras entram como demanda dos seus dias.
+        List<AplicacaoPlanejada> aplicacoes = cenario.aplicacoes().stream()
+                .map(a -> new AplicacaoPlanejada(a.id(), a.protocoloId(), a.codigoProtocolo(), a.numero(), a.doses(),
+                        a.data(), a.inicioJanela(), a.fimJanela(), a.intervaloMinimoDias(),
+                        a.movivel() && a.doses().containsKey(medicamentoId)))
+                .toList();
+
+        long t0 = System.nanoTime();
+        List<Sugestao> sugestoes = PlanejadorAgenda.planejar(aplicacoes, cenario.dosesFixas(), cenario.tipos(),
+                inicio, fim, LocalDate.now(), cenario.diasFechados());
+        long tempoMs = (System.nanoTime() - t0) / 1_000_000;
+        return new Previa(medicamentoId, inicio, fim, sugestoes, tempoMs);
+    }
+
+    /**
+     * Cenário dos medicamentos pedidos e dos outros intravenosos dos mesmos protocolos (no AC, os dois), com
+     * todas as aplicações desses protocolos que têm alguma data no período.
+     */
+    @Transactional(readOnly = true)
+    public Cenario montarCenario(Set<UUID> medicamentosIniciais, LocalDate inicio, LocalDate fim) {
+        Set<UUID> medicamentos = new LinkedHashSet<>(medicamentosIniciais);
+        for (UUID med : medicamentosIniciais) {
+            protocoloRepository.buscarComAplicacaoNoPeriodo(med, inicio, fim).forEach(p -> p.getMedicamentos().stream()
+                    .filter(PreverSugestoesUseCase::intravenoso)
+                    .forEach(m -> medicamentos.add(m.getMedicamento().getId())));
+        }
 
         Map<UUID, ProtocoloPaciente> protocolos = new LinkedHashMap<>();
         for (UUID med : medicamentos) {
@@ -97,18 +122,21 @@ public class PreverSugestoesUseCase {
                 : prescricaoRepository.findByAplicacaoIdIn(aplicacaoIds).stream()
                         .collect(Collectors.groupingBy(p -> p.getAplicacao().getId()));
 
-        List<AplicacaoPlanejada> cenario = new ArrayList<>();
+        List<AplicacaoPlanejada> aplicacoes = new ArrayList<>();
         for (ProtocoloPaciente protocolo : protocolos.values()) {
             for (Aplicacao a : protocolo.getAplicacoes()) {
                 if (a.getStatus() == StatusAplicacao.CANCELADA) {
                     continue;
                 }
-                List<Prescricao> linhas = linhasPorAplicacao.getOrDefault(a.getId(), List.of());
+                // Só a prescrição do dia agendado vale: o não apto remarcado volta com outra prescrição.
+                List<Prescricao> linhas = linhasPorAplicacao.getOrDefault(a.getId(), List.of()).stream()
+                        .filter(p -> p.getDataPrescricao().equals(a.getDataAgendada()))
+                        .toList();
                 boolean naoApto = linhas.stream().anyMatch(p -> p.getStatus() == StatusPrescricao.NAO_APTO);
                 Map<UUID, Double> doses = naoApto ? Map.of() : doses(a, linhas, medicamentos);
-                cenario.add(new AplicacaoPlanejada(a.getId(), protocolo.getId(), protocolo.getCodigoProtocolo(), a.getNumero(),
-                        doses, a.getDataAgendada(), a.inicioJanela(), a.fimJanela(), protocolo.getIntervaloMinimoDias(),
-                        a.getStatus() == StatusAplicacao.AGENDADA && doses.containsKey(medicamentoId)));
+                aplicacoes.add(new AplicacaoPlanejada(a.getId(), protocolo.getId(), protocolo.getCodigoProtocolo(),
+                        a.getNumero(), doses, a.getDataAgendada(), a.inicioJanela(), a.fimJanela(),
+                        protocolo.getIntervaloMinimoDias(), a.getStatus() == StatusAplicacao.AGENDADA && !doses.isEmpty()));
             }
         }
 
@@ -125,11 +153,7 @@ public class PreverSugestoesUseCase {
             fechados.put(med, new HashSet<>(
                     otimizacaoRepository.buscarDiasNoPeriodo(med, inicio, fim, StatusOtimizacao.CONFIRMADA)));
         }
-
-        long t0 = System.nanoTime();
-        List<Sugestao> sugestoes = PlanejadorAgenda.planejar(cenario, legado, tipos, inicio, fim, LocalDate.now(), fechados);
-        long tempoMs = (System.nanoTime() - t0) / 1_000_000;
-        return new Previa(medicamentoId, inicio, fim, sugestoes, tempoMs);
+        return new Cenario(aplicacoes, legado, tipos, fechados);
     }
 
     /** mg de cada quimioterápico intravenoso do dia: a da linha da prescrição, se houver; senão, a do protocolo. */
@@ -148,7 +172,7 @@ public class PreverSugestoesUseCase {
     }
 
     /** O modelo de Gê trata só medicamentos intravenosos (no Tasy, via "IV - Intravenosa"). */
-    private static boolean intravenoso(ProtocoloMedicamento item) {
+    static boolean intravenoso(ProtocoloMedicamento item) {
         return item.getVia().trim().toUpperCase().startsWith("IV");
     }
 }

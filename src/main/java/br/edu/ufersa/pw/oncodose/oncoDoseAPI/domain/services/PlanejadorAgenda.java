@@ -109,6 +109,45 @@ public final class PlanejadorAgenda {
         }
     }
 
+    /**
+     * Paciente não apto: entre de e ate, o dia em que a aplicação inteira custa menos somada aos outros pacientes
+     * dos mesmos medicamentos. Sem janela (o critério é clínico); respeita intervalo mínimo, dias fechados e hoje.
+     * Em empate, o mais cedo. ganho = custo da aplicação sozinha − custo marginal no dia escolhido.
+     */
+    public static Optional<Sugestao> melhorDia(AplicacaoPlanejada alvo, List<AplicacaoPlanejada> outras,
+                                               Map<UUID, Map<LocalDate, List<Double>>> dosesFixas,
+                                               Map<UUID, List<TipoFrasco>> tipos, LocalDate de, LocalDate ate,
+                                               LocalDate hoje, Map<UUID, Set<LocalDate>> diasFechados) {
+        List<AplicacaoPlanejada> todas = new ArrayList<>(outras);
+        todas.add(alvo);
+        Map<UUID, LocalDate> data = new HashMap<>();
+        todas.forEach(a -> data.put(a.id(), a.data()));
+        Map<Chave, Double> cache = new HashMap<>();
+        Sugestao melhor = null;
+        double menorMarginal = Double.POSITIVE_INFINITY;
+        for (LocalDate dia = max(de, hoje); !dia.isAfter(ate); dia = dia.plusDays(1)) {
+            if (dia.equals(alvo.data()) || fechado(alvo, dia, diasFechados) || !respeitaIntervalo(alvo, dia, todas, data)) {
+                continue;
+            }
+            double marginal = 0;
+            double sozinha = 0;
+            for (Map.Entry<UUID, Double> dose : alvo.doses().entrySet()) {
+                UUID med = dose.getKey();
+                List<TipoFrasco> frascos = tipos.getOrDefault(med, List.of());
+                List<Double> doDia = doses(med, dia, outras, data, dosesFixas);
+                List<Double> com = new ArrayList<>(doDia);
+                com.add(dose.getValue());
+                marginal += custo(med, com, frascos, cache) - custo(med, doDia, frascos, cache);
+                sozinha += custo(med, List.of(dose.getValue()), frascos, cache);
+            }
+            if (Double.isFinite(marginal) && marginal < menorMarginal - EPS) {
+                menorMarginal = marginal;
+                melhor = new Sugestao(alvo.id(), alvo.codigoProtocolo(), alvo.numero(), alvo.data(), dia, sozinha - marginal);
+            }
+        }
+        return Optional.ofNullable(melhor);
+    }
+
     /** O destino está fechado se algum medicamento da aplicação já teve o preparo confirmado nesse dia. */
     private static boolean fechado(AplicacaoPlanejada a, LocalDate destino, Map<UUID, Set<LocalDate>> diasFechados) {
         return a.doses().keySet().stream().anyMatch(med -> diasFechados.getOrDefault(med, Set.of()).contains(destino));

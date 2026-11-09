@@ -198,6 +198,25 @@ public class ProtocoloPaciente {
      * intervaloMinimoDias das vizinhas (canceladas não contam). Usado pelo aceite de sugestão.
      */
     public void reagendar(int numero, LocalDate novaData) {
+        mover(numero, novaData, true, null);
+    }
+
+    public void reagendar(int numero, LocalDate novaData, String motivo) {
+        mover(numero, novaData, true, motivo);
+    }
+
+    /**
+     * Paciente não apto: volta numa data definida a partir do critério clínico, fora da janela de flexibilidade
+     * (que é só para juntar pacientes). Continua valendo o intervalo mínimo com as vizinhas. Motivo obrigatório.
+     */
+    public void remarcar(int numero, LocalDate novaData, String motivo) {
+        if (motivo == null || motivo.isBlank()) {
+            throw new ProtocoloInvalidoException(codigoProtocolo, "motivo da remarcação é obrigatório");
+        }
+        mover(numero, novaData, false, motivo);
+    }
+
+    private void mover(int numero, LocalDate novaData, boolean exigirJanela, String motivo) {
         Aplicacao alvo = aplicacoes.stream()
                 .filter(a -> a.getNumero() == numero)
                 .findFirst()
@@ -205,7 +224,7 @@ public class ProtocoloPaciente {
         if (alvo.getStatus() != StatusAplicacao.AGENDADA) {
             throw new ReagendamentoInvalidoException(codigoProtocolo, numero, novaData, "aplicação já está " + alvo.getStatus());
         }
-        if (!alvo.janelaPermite(novaData)) {
+        if (exigirJanela && !alvo.janelaPermite(novaData)) {
             throw new ReagendamentoInvalidoException(codigoProtocolo, numero, novaData,
                     "fora da janela " + alvo.inicioJanela() + " a " + alvo.fimJanela());
         }
@@ -223,7 +242,7 @@ public class ProtocoloPaciente {
             throw new ReagendamentoInvalidoException(codigoProtocolo, numero, novaData,
                     "menos de " + intervaloMinimoDias + " dias da aplicação " + seguinte.get().getNumero());
         }
-        alvo.agendarPara(novaData);
+        alvo.agendarPara(novaData, motivo);
     }
 
     private Stream<Aplicacao> vizinhas(int numero) {

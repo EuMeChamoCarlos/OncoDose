@@ -21,7 +21,8 @@ public interface PrescricaoRepository
 
     boolean existsByMedicamentoId(UUID medicamentoId);
 
-    boolean existsByAplicacaoIdAndMedicamentoId(UUID aplicacaoId, UUID medicamentoId);
+    /** Uma linha por aplicação, medicamento e dia: o não apto remarcado volta com outra prescrição. */
+    boolean existsByAplicacaoIdAndMedicamentoIdAndDataPrescricao(UUID aplicacaoId, UUID medicamentoId, LocalDate data);
 
     boolean existsByAplicacaoProtocoloId(UUID protocoloId);
 

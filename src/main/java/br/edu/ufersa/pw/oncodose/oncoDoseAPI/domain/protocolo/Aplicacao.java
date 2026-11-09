@@ -50,6 +50,10 @@ public class Aplicacao {
     @Column(name = "data_real")
     private LocalDate dataReal;
 
+    /** Por que a data agendada saiu da prevista (como "Motivo de alteração" do Tasy). */
+    @Column(name = "motivo_alteracao")
+    private String motivoAlteracao;
+
     @Column(name = "dias_antes", nullable = false)
     private Integer diasAntes;
 
@@ -125,8 +129,11 @@ public class Aplicacao {
         return !data.isBefore(inicioJanela()) && !data.isAfter(fimJanela());
     }
 
-    void agendarPara(LocalDate data) {
+    void agendarPara(LocalDate data, String motivo) {
         this.dataAgendada = data;
+        if (motivo != null && !motivo.isBlank()) {
+            this.motivoAlteracao = motivo;
+        }
     }
 
     private void validarJanela(int diasAntes, int diasDepois) {

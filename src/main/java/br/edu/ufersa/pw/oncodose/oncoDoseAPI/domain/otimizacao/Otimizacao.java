@@ -1,5 +1,6 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao;
 
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.EstadoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.medicamento.Medicamento;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -51,8 +52,36 @@ public class Otimizacao {
     @OneToMany(mappedBy = "otimizacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AlocacaoFrasco> alocacoes = new ArrayList<>();
 
+    @Column(name = "recusada_em")
+    private LocalDateTime recusadaEm;
+
+    /** Login de quem recusou. */
+    @Column(name = "recusada_por")
+    private String recusadaPor;
+
+    @Column(name = "motivo_recusa", length = 500)
+    private String motivoRecusa;
+
     public boolean isConfirmada() {
         return status == StatusOtimizacao.CONFIRMADA;
+    }
+
+    public boolean isRecusada() {
+        return status == StatusOtimizacao.RECUSADA;
+    }
+
+    /** Recusar de novo devolve o mesmo estado; plano com preparo confirmado não se recusa. */
+    public void recusar(String usuario, String motivo) {
+        if (isRecusada()) {
+            return;
+        }
+        if (isConfirmada()) {
+            throw new EstadoInvalidoException("Otimização", id, "preparo já confirmado; não pode ser recusada");
+        }
+        this.status = StatusOtimizacao.RECUSADA;
+        this.recusadaPor = usuario;
+        this.recusadaEm = LocalDateTime.now().truncatedTo(ChronoUnit.MILLIS);
+        this.motivoRecusa = motivo == null || motivo.isBlank() ? null : motivo;
     }
 
     /** Preparo feito: a baixa de estoque é responsabilidade de quem confirma (use case). */

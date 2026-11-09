@@ -1,6 +1,7 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao;
 
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.EstadoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.FrascoIndisponivelException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoDuplicadoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
@@ -50,6 +51,9 @@ public class ConfirmarOtimizacaoUseCase {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Otimização", otimizacaoId));
         if (otimizacao.isConfirmada()) {
             return otimizacao;
+        }
+        if (otimizacao.isRecusada()) {
+            throw new EstadoInvalidoException("Otimização", otimizacaoId, "plano recusado; otimize de novo");
         }
         if (otimizacaoRepository.existsByMedicamentoIdAndDataReferenciaAndStatus(
                 otimizacao.getMedicamento().getId(), otimizacao.getDataReferencia(), StatusOtimizacao.CONFIRMADA)) {

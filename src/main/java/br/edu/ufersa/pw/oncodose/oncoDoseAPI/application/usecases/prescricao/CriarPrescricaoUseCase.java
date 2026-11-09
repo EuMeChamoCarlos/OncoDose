@@ -43,8 +43,10 @@ public class CriarPrescricaoUseCase {
 
         Aplicacao aplicacao = null;
         if (request.aplicacaoId() != null) {
-            if (prescricaoRepository.existsByAplicacaoIdAndMedicamentoId(request.aplicacaoId(), request.medicamentoId())) {
-                throw new RecursoDuplicadoException("Prescrição", "aplicacaoId e medicamentoId", request.aplicacaoId().toString());
+            if (prescricaoRepository.existsByAplicacaoIdAndMedicamentoIdAndDataPrescricao(
+                    request.aplicacaoId(), request.medicamentoId(), request.dataPrescricao())) {
+                throw new RecursoDuplicadoException("Prescrição", "aplicacaoId, medicamentoId e dataPrescricao",
+                        request.aplicacaoId().toString());
             }
             aplicacao = aplicacaoRepository.findById(request.aplicacaoId())
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Aplicação", request.aplicacaoId()));

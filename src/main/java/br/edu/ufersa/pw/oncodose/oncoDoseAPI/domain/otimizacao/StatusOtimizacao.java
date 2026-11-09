@@ -5,6 +5,8 @@ public enum StatusOtimizacao {
     CONCLUIDA,
     /** Preparo feito; estoque já baixado. */
     CONFIRMADA,
+    /** Plano recusado pelo profissional; não mexe no estoque nem nas aplicações. */
+    RECUSADA,
     INFACTIVEL,
     ERRO
 }

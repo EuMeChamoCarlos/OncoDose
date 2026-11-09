@@ -10,7 +10,7 @@ import java.util.UUID;
 public record AplicacaoResponse(UUID id, UUID protocoloId, Integer numero, Integer cicloNumero, Integer diaCiclo,
                                 LocalDate dataPrevista, LocalDate dataAgendada, LocalDate dataReal,
                                 Integer diasAntes, Integer diasDepois, LocalDate inicioJanela, LocalDate fimJanela,
-                                StatusAplicacao status) {
+                                StatusAplicacao status, String motivoAlteracao) {
     public static AplicacaoResponse fromAplicacao(Aplicacao aplicacao) {
         return new AplicacaoResponse(
                 aplicacao.getId(),
@@ -25,7 +25,8 @@ public record AplicacaoResponse(UUID id, UUID protocoloId, Integer numero, Integ
                 aplicacao.getDiasDepois(),
                 aplicacao.inicioJanela(),
                 aplicacao.fimJanela(),
-                aplicacao.getStatus()
+                aplicacao.getStatus(),
+                aplicacao.getMotivoAlteracao()
         );
     }
 }

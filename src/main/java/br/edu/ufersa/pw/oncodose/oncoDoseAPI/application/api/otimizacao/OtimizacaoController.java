@@ -5,6 +5,10 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.otimizacao.dto.Otim
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.BuscarOtimizacaoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.ConfirmarOtimizacaoUseCase;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.OtimizarDiaUseCase;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.otimizacao.RecusarOtimizacaoUseCase;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.api.agenda.dto.SugestaoDtos.DecisaoRequest;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.Otimizacao;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +26,7 @@ public class OtimizacaoController {
     private final OtimizarDiaUseCase otimizarDiaUseCase;
     private final BuscarOtimizacaoUseCase buscarOtimizacaoUseCase;
     private final ConfirmarOtimizacaoUseCase confirmarOtimizacaoUseCase;
+    private final RecusarOtimizacaoUseCase recusarOtimizacaoUseCase;
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
@@ -44,5 +49,16 @@ public class OtimizacaoController {
     @PutMapping("/{otimizacaoId}/confirmacao")
     public ResponseEntity<OtimizacaoResponse> confirmar(@PathVariable UUID otimizacaoId) {
         return ResponseEntity.ok(OtimizacaoResponse.fromOtimizacao(confirmarOtimizacaoUseCase.executar(otimizacaoId)));
+    }
+
+    /** O profissional recusa o plano (motivo opcional). Plano confirmado não se recusa → 422. */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{otimizacaoId}/recusa")
+    public ResponseEntity<OtimizacaoResponse> recusar(@PathVariable UUID otimizacaoId,
+                                                      @Valid @RequestBody(required = false) DecisaoRequest request,
+                                                      @AuthenticationPrincipal UserDetails usuario) {
+        String motivo = request == null ? null : request.motivo();
+        return ResponseEntity.ok(OtimizacaoResponse.fromOtimizacao(
+                recusarOtimizacaoUseCase.executar(otimizacaoId, usuario.getUsername(), motivo)));
     }
 }
