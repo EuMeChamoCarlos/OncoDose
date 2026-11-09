@@ -50,8 +50,11 @@ public class CriarPrescricaoUseCase {
                     .orElseThrow(() -> new RecursoNaoEncontradoException("Aplicação", request.aplicacaoId()));
         }
 
-        return prescricaoRepository.save(Prescricao.nova(
+        Prescricao nova = Prescricao.nova(
                 request.codigoPrescricao(), medicamento,
-                request.doseMg(), request.status(), request.dataPrescricao(), aplicacao));
+                request.doseMg(), request.status(), request.dataPrescricao(), aplicacao);
+        prescricaoRepository.findByCodigoPrescricao(request.codigoPrescricao())
+                .forEach(nova::exigirMesmaPrescricaoQue);
+        return prescricaoRepository.save(nova);
     }
 }

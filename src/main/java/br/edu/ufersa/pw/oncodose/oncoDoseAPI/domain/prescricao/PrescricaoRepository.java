@@ -25,6 +25,11 @@ public interface PrescricaoRepository
 
     boolean existsByAplicacaoProtocoloId(UUID protocoloId);
 
+    /** Todas as linhas (uma por medicamento) de uma prescrição. */
+    List<Prescricao> findByCodigoPrescricao(String codigoPrescricao);
+
+    List<Prescricao> findByAplicacaoId(UUID aplicacaoId);
+
     /**
      * Pacientes i de uma instância do modelo: prescrições do medicamento com o status pedido cujo
      * dia de preparo é {@code data} — a data agendada da aplicação ou, no legado sem aplicação,

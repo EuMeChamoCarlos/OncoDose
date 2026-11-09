@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -70,6 +71,11 @@ public class Aplicacao {
         validarJanela(diasAntes, diasDepois);
         this.diasAntes = diasAntes;
         this.diasDepois = diasDepois;
+    }
+
+    /** Quimioterápicos do protocolo aplicados neste dia do ciclo (no AC, os dois). */
+    public List<ProtocoloMedicamento> medicamentosDoDia() {
+        return protocolo.getMedicamentos().stream().filter(m -> m.aplicaNoDia(diaCiclo)).toList();
     }
 
     /** O medicamento faz parte do protocolo e é aplicado neste dia do ciclo. */

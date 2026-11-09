@@ -10,6 +10,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -75,6 +76,19 @@ public class Prescricao {
         prescricao.aplicacao = aplicacao;
         prescricao.atualizar(doseMg, status, dataPrescricao);
         return prescricao;
+    }
+
+    /**
+     * Linhas com o mesmo código são a mesma prescrição: mesma aplicação, mesmo status (apto ou não)
+     * e mesma data. Só a dose muda de um medicamento para outro.
+     */
+    public void exigirMesmaPrescricaoQue(Prescricao outra) {
+        boolean mesmaAplicacao = aplicacao == null ? outra.aplicacao == null
+                : outra.aplicacao != null && Objects.equals(aplicacao.getId(), outra.aplicacao.getId());
+        if (!mesmaAplicacao || status != outra.status || !dataPrescricao.equals(outra.dataPrescricao)) {
+            throw new PrescricaoInvalidaException(codigoPrescricao,
+                    "linhas da mesma prescrição precisam ter a mesma aplicação, status e data");
+        }
     }
 
     /** Código e medicamento são a identidade da linha; o resto pode ser corrigido. */
