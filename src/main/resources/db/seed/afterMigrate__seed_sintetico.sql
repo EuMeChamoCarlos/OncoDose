@@ -222,3 +222,44 @@ JOIN protocolo_medicamento pm ON pm.protocolo_id = p.id
 WHERE p.codigo_protocolo BETWEEN 'PTC2027-000001' AND 'PTC2027-000006'
   AND a.numero = 1
 ON CONFLICT DO NOTHING;
+
+-- =====================================================================
+-- Cenário da agenda no futuro (FICTÍCIO): cópia dos protocolos PTC2026-000001..010 deslocada 238 dias,
+-- porque a agenda não sugere datas passadas. 26–27/10/2026 → 21–22/06/2027 (segunda e terça), depois
+-- do fim dos TAX W de 2027. PTC2027-000110 cai sozinho em 21/06 com janela +1: a prévia deve sugerir
+-- juntá-lo ao grupo de 22/06 com ganho de US$ 45, como no cenário original.
+-- =====================================================================
+
+INSERT INTO protocolo_paciente (codigo_protocolo, medicacao_subtipo, grupo, data_inicio, ciclos,
+                                dias_intervalo, intervalo_minimo_dias)
+SELECT 'PTC2027-0001' || right(p.codigo_protocolo, 2), p.medicacao_subtipo, p.grupo, p.data_inicio + 238,
+       p.ciclos, p.dias_intervalo, p.intervalo_minimo_dias
+FROM protocolo_paciente p
+WHERE p.codigo_protocolo BETWEEN 'PTC2026-000001' AND 'PTC2026-000010'
+ON CONFLICT (codigo_protocolo) DO NOTHING;
+
+INSERT INTO protocolo_medicamento (protocolo_id, medicamento_id, dose_mg, via, dias_aplicacao)
+SELECT novo.id, pm.medicamento_id, pm.dose_mg, pm.via, pm.dias_aplicacao
+FROM protocolo_medicamento pm
+JOIN protocolo_paciente velho ON velho.id = pm.protocolo_id
+JOIN protocolo_paciente novo ON novo.codigo_protocolo = 'PTC2027-0001' || right(velho.codigo_protocolo, 2)
+WHERE velho.codigo_protocolo BETWEEN 'PTC2026-000001' AND 'PTC2026-000010'
+ON CONFLICT (protocolo_id, medicamento_id) DO NOTHING;
+
+INSERT INTO aplicacao (protocolo_id, numero, ciclo_numero, dia_ciclo, data_prevista, data_agendada,
+                       dias_antes, dias_depois, status)
+SELECT p.id, n, n, 1, p.data_inicio + (n - 1) * p.dias_intervalo, p.data_inicio + (n - 1) * p.dias_intervalo,
+       0, CASE WHEN p.codigo_protocolo = 'PTC2027-000110' THEN 1 ELSE 0 END, 'AGENDADA'
+FROM protocolo_paciente p
+CROSS JOIN LATERAL generate_series(1, p.ciclos) AS n
+WHERE p.codigo_protocolo BETWEEN 'PTC2027-000101' AND 'PTC2027-000110'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO prescricao (codigo_prescricao, medicamento_id, dose_mg, status, data_prescricao, aplicacao_id)
+SELECT 'PRE2027-0002' || right(p.codigo_protocolo, 2), pm.medicamento_id, pm.dose_mg, 'APTO', a.data_prevista, a.id
+FROM aplicacao a
+JOIN protocolo_paciente p ON p.id = a.protocolo_id
+JOIN protocolo_medicamento pm ON pm.protocolo_id = p.id
+WHERE p.codigo_protocolo BETWEEN 'PTC2027-000101' AND 'PTC2027-000110'
+  AND a.data_prevista IN (DATE '2027-06-21', DATE '2027-06-22')
+ON CONFLICT DO NOTHING;

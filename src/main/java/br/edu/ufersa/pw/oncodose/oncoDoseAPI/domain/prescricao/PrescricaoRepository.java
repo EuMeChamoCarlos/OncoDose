@@ -43,7 +43,7 @@ public interface PrescricaoRepository
     List<Prescricao> buscarDoDia(@Param("medicamentoId") UUID medicamentoId, @Param("data") LocalDate data,
                                  @Param("status") StatusPrescricao status);
 
-    List<Prescricao> findByAplicacaoIdInAndMedicamentoId(Collection<UUID> aplicacaoIds, UUID medicamentoId);
+    List<Prescricao> findByAplicacaoIdIn(Collection<UUID> aplicacaoIds);
 
     /** Legado (sem aplicação) no período: demanda fixa do dia para o planejador da agenda. */
     @Query("""

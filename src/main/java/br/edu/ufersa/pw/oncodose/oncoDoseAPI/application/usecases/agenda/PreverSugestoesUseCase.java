@@ -1,10 +1,5 @@
 package br.edu.ufersa.pw.oncodose.oncoDoseAPI.application.usecases.agenda;
 
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloMedicamento;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloPaciente;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloPacienteRepository;
-import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.StatusAplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.PeriodoInvalidoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.exception.RecursoNaoEncontradoException;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.frascos.FrascosRepository;
@@ -14,6 +9,11 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.otimizacao.StatusOtimizacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.Prescricao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.PrescricaoRepository;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.prescricao.StatusPrescricao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.Aplicacao;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloMedicamento;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloPaciente;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.ProtocoloPacienteRepository;
+import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.protocolo.StatusAplicacao;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.services.PlanejadorAgenda;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.services.PlanejadorAgenda.AplicacaoPlanejada;
 import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.services.PlanejadorAgenda.Sugestao;
@@ -21,23 +21,27 @@ import br.edu.ufersa.pw.oncodose.oncoDoseAPI.domain.services.SolverFracionamento
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Caso de uso: prévia da agenda (só leitura). Monta o cenário do banco e roda o planejador sem gravar
- * nada; a fase 4 grava as sugestões e permite aceitar/recusar.
+ * nada; gravar, aceitar e recusar as sugestões vem depois.
  *
- * <p>Dose de cada aplicação: a da prescrição APTO, se houver; NAO_APTO não entra no custo e não se
- * move; sem prescrição, a do protocolo. Prescrições do legado (sem aplicação) entram como demanda fixa.
+ * <p>O medicamento escolhe quais aplicações podem se mover; a aplicação se move inteira, e o ganho conta
+ * todos os quimioterápicos intravenosos dela. Para isso entram também os outros pacientes desses
+ * medicamentos no período. Dose de cada medicamento: a da linha da prescrição, se houver; senão, a do
+ * protocolo. Prescrição NAO_APTO tira a aplicação do custo e da remarcação. Legado (sem aplicação) é
+ * demanda fixa. Nada se move de ou para um dia anterior a hoje.
  */
 @Service
 public class PreverSugestoesUseCase {
@@ -75,43 +79,76 @@ public class PreverSugestoesUseCase {
             throw new RecursoNaoEncontradoException("Medicamento", medicamentoId);
         }
 
-        List<ProtocoloPaciente> protocolos = protocoloRepository.buscarComAplicacaoNoPeriodo(medicamentoId, inicio, fim);
-        List<UUID> aplicacaoIds = protocolos.stream().flatMap(c -> c.getAplicacoes().stream()).map(Aplicacao::getId).toList();
-        Map<UUID, Prescricao> prescricaoPorAplicacao = aplicacaoIds.isEmpty() ? Map.of()
-                : prescricaoRepository.findByAplicacaoIdInAndMedicamentoId(aplicacaoIds, medicamentoId).stream()
-                        .collect(Collectors.toMap(p -> p.getAplicacao().getId(), Function.identity()));
+        // Medicamentos envolvidos: o pedido e os outros intravenosos dos mesmos protocolos (no AC, os dois).
+        List<ProtocoloPaciente> principais = protocoloRepository.buscarComAplicacaoNoPeriodo(medicamentoId, inicio, fim);
+        Set<UUID> medicamentos = new LinkedHashSet<>();
+        medicamentos.add(medicamentoId);
+        principais.forEach(p -> p.getMedicamentos().stream().filter(PreverSugestoesUseCase::intravenoso)
+                .forEach(m -> medicamentos.add(m.getMedicamento().getId())));
+
+        Map<UUID, ProtocoloPaciente> protocolos = new LinkedHashMap<>();
+        for (UUID med : medicamentos) {
+            protocoloRepository.buscarComAplicacaoNoPeriodo(med, inicio, fim).forEach(p -> protocolos.putIfAbsent(p.getId(), p));
+        }
+
+        List<UUID> aplicacaoIds = protocolos.values().stream()
+                .flatMap(p -> p.getAplicacoes().stream()).map(Aplicacao::getId).toList();
+        Map<UUID, List<Prescricao>> linhasPorAplicacao = aplicacaoIds.isEmpty() ? Map.of()
+                : prescricaoRepository.findByAplicacaoIdIn(aplicacaoIds).stream()
+                        .collect(Collectors.groupingBy(p -> p.getAplicacao().getId()));
 
         List<AplicacaoPlanejada> cenario = new ArrayList<>();
-        for (ProtocoloPaciente protocolo : protocolos) {
+        for (ProtocoloPaciente protocolo : protocolos.values()) {
             for (Aplicacao a : protocolo.getAplicacoes()) {
                 if (a.getStatus() == StatusAplicacao.CANCELADA) {
                     continue;
                 }
-                // ponytail: move por medicamento; no AC, remarcar um sem o outro é inválido. Corrigir na adaptação da agenda.
-                Optional<ProtocoloMedicamento> item = protocolo.medicamentoDe(medicamentoId)
-                        .filter(m -> m.aplicaNoDia(a.getDiaCiclo()));
-                Prescricao p = prescricaoPorAplicacao.get(a.getId());
-                boolean naoApto = p != null && p.getStatus() == StatusPrescricao.NAO_APTO;
-                Double dose = naoApto || item.isEmpty() ? null : p != null ? p.getDoseMg() : item.get().getDoseMg();
-                cenario.add(new AplicacaoPlanejada(a.getId(), protocolo.getId(), protocolo.getCodigoProtocolo(), a.getNumero(), dose,
-                        a.getDataAgendada(), a.inicioJanela(), a.fimJanela(), protocolo.getIntervaloMinimoDias(),
-                        a.getStatus() == StatusAplicacao.AGENDADA && !naoApto && item.isPresent()));
+                List<Prescricao> linhas = linhasPorAplicacao.getOrDefault(a.getId(), List.of());
+                boolean naoApto = linhas.stream().anyMatch(p -> p.getStatus() == StatusPrescricao.NAO_APTO);
+                Map<UUID, Double> doses = naoApto ? Map.of() : doses(a, linhas, medicamentos);
+                cenario.add(new AplicacaoPlanejada(a.getId(), protocolo.getId(), protocolo.getCodigoProtocolo(), a.getNumero(),
+                        doses, a.getDataAgendada(), a.inicioJanela(), a.fimJanela(), protocolo.getIntervaloMinimoDias(),
+                        a.getStatus() == StatusAplicacao.AGENDADA && doses.containsKey(medicamentoId)));
             }
         }
 
-        Map<LocalDate, List<Double>> legado = prescricaoRepository
-                .buscarLegadoNoPeriodo(medicamentoId, inicio, fim, StatusPrescricao.APTO).stream()
-                .collect(Collectors.groupingBy(Prescricao::getDataPrescricao,
-                        Collectors.mapping(Prescricao::getDoseMg, Collectors.toList())));
-        List<TipoFrasco> tipos = frascosRepository.findByMedicamentoId(medicamentoId).stream()
-                .map(f -> new TipoFrasco(f.getVolumeMg(), f.getCusto(), f.getQuantidadeEstoque()))
-                .toList();
-        Set<LocalDate> fechados = new HashSet<>(
-                otimizacaoRepository.buscarDiasNoPeriodo(medicamentoId, inicio, fim, StatusOtimizacao.CONFIRMADA));
+        Map<UUID, Map<LocalDate, List<Double>>> legado = new HashMap<>();
+        Map<UUID, List<TipoFrasco>> tipos = new HashMap<>();
+        Map<UUID, Set<LocalDate>> fechados = new HashMap<>();
+        for (UUID med : medicamentos) {
+            legado.put(med, prescricaoRepository.buscarLegadoNoPeriodo(med, inicio, fim, StatusPrescricao.APTO).stream()
+                    .collect(Collectors.groupingBy(Prescricao::getDataPrescricao,
+                            Collectors.mapping(Prescricao::getDoseMg, Collectors.toList()))));
+            tipos.put(med, frascosRepository.findByMedicamentoId(med).stream()
+                    .map(f -> new TipoFrasco(f.getVolumeMg(), f.getCusto(), f.getQuantidadeEstoque()))
+                    .toList());
+            fechados.put(med, new HashSet<>(
+                    otimizacaoRepository.buscarDiasNoPeriodo(med, inicio, fim, StatusOtimizacao.CONFIRMADA)));
+        }
 
         long t0 = System.nanoTime();
-        List<Sugestao> sugestoes = PlanejadorAgenda.planejar(cenario, legado, tipos, inicio, fim, fechados);
+        List<Sugestao> sugestoes = PlanejadorAgenda.planejar(cenario, legado, tipos, inicio, fim, LocalDate.now(), fechados);
         long tempoMs = (System.nanoTime() - t0) / 1_000_000;
         return new Previa(medicamentoId, inicio, fim, sugestoes, tempoMs);
+    }
+
+    /** mg de cada quimioterápico intravenoso do dia: a da linha da prescrição, se houver; senão, a do protocolo. */
+    private static Map<UUID, Double> doses(Aplicacao a, List<Prescricao> linhas, Set<UUID> medicamentos) {
+        Map<UUID, Double> doses = new HashMap<>();
+        for (ProtocoloMedicamento item : a.medicamentosDoDia()) {
+            UUID med = item.getMedicamento().getId();
+            if (!intravenoso(item) || !medicamentos.contains(med)) {
+                continue;
+            }
+            double dose = linhas.stream().filter(p -> p.getMedicamento().getId().equals(med))
+                    .map(Prescricao::getDoseMg).findFirst().orElse(item.getDoseMg());
+            doses.put(med, dose);
+        }
+        return doses;
+    }
+
+    /** O modelo de Gê trata só medicamentos intravenosos (no Tasy, via "IV - Intravenosa"). */
+    private static boolean intravenoso(ProtocoloMedicamento item) {
+        return item.getVia().trim().toUpperCase().startsWith("IV");
     }
 }
