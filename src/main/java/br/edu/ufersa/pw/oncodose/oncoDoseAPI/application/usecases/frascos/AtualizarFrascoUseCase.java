@@ -43,6 +43,7 @@ public class AtualizarFrascoUseCase {
         frasco.setVolumeMg(request.getVolumeMg());
         frasco.setCusto(request.getCusto());
         frasco.setQuantidadeEstoque(request.getQuantidadeEstoque());
+        frasco.setDescricaoTasy(request.getDescricaoTasy());
         return frasco;
     }
 }

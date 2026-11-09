@@ -48,6 +48,25 @@ class SolverFracionamentoTest {
         assertSolucaoValida(s, d, tipos);
     }
 
+    /** Dia 01/03/2027 do seed no formato do Tasy: custos conferidos à mão, valores fictícios. */
+    @Test
+    void cenarioFormatoTasy() {
+        List<TipoFrasco> paclitaxel = List.of(new TipoFrasco(30, 25, 20), new TipoFrasco(100, 70, 20), new TipoFrasco(300, 190, 10));
+        List<TipoFrasco> doxorrubicina = List.of(new TipoFrasco(10, 30, 20), new TipoFrasco(50, 120, 20));
+        List<TipoFrasco> ciclofosfamida = List.of(new TipoFrasco(200, 8, 20), new TipoFrasco(1000, 30, 10));
+
+        assertCustos(List.of(128.0, 140.0), paclitaxel, 190, 215);       // 1×300 | 100+30 e 100+30+30
+        assertCustos(List.of(102.0, 111.0), doxorrubicina, 540, 570);    // 4×50+2×10 | 2×50+10 e 2×50+2×10
+        assertCustos(List.of(1020.0, 1110.0), ciclofosfamida, 68, 76);   // 2×1000+200 | 1000+200 cada
+    }
+
+    private static void assertCustos(List<Double> d, List<TipoFrasco> tipos, double otimo, double semCompartilhar) {
+        Solucao s = SolverFracionamento.resolver(d, tipos);
+        assertThat(s.custoTotal()).isCloseTo(otimo, within(1e-6));
+        assertSolucaoValida(s, d, tipos);
+        assertThat(SolverFracionamento.custoSemCompartilhamento(d, tipos)).isCloseTo(semCompartilhar, within(1e-6));
+    }
+
     /**
      * Gabarito independente: como qualquer paciente pode usar qualquer frasco aberto, o ótimo
      * é o do problema compacto min Σ c_j·n_j com Σ v_j·n_j ≥ D, resolvido aqui por força bruta.

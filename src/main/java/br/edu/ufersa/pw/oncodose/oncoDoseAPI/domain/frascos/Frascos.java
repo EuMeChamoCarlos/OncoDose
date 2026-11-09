@@ -27,4 +27,7 @@ public class Frascos {
 
     @Column(name = "quantidade_estoque", nullable = false)
     private Integer quantidadeEstoque; // Representa e_j (estoque disponível)[cite: 1]
+
+    @Column(name = "descricao_tasy")
+    private String descricaoTasy; // Nome da apresentação no Tasy; opcional
 }
