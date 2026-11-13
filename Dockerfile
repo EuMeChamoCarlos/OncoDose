@@ -17,9 +17,9 @@ RUN mvn -q -B package -DskipTests
 # ========================================================
 FROM eclipse-temurin:21-jre-jammy
 WORKDIR /app
-RUN useradd --system --create-home oncodose
+RUN useradd --system --create-home oncotimize
 COPY --from=build /app/target/*.jar app.jar
-USER oncodose
+USER oncotimize
 # Datas e horários (confirmadaEm, "hoje") no fuso do Brasil, não em UTC.
 ENV TZ=America/Sao_Paulo
 EXPOSE 8080

@@ -1,5 +1,5 @@
 -- =====================================================================
--- oncoDoseAPI - seed sintético (só profile dev; callback afterMigrate)
+-- oncotimizeAPI - seed sintético (só profile dev; callback afterMigrate)
 -- Idempotente: só insere o que falta; nunca sobrescreve dado existente.
 --
 -- Fontes:
