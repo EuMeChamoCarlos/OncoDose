@@ -1,0 +1,33 @@
+package br.edu.ufersa.pw.oncotimize.domain.frascos;
+
+import br.edu.ufersa.pw.oncotimize.domain.medicamento.Medicamento;
+import jakarta.persistence.*;
+import lombok.Data;
+
+import java.util.UUID;
+
+@Data
+@Entity
+@Table(name = "apresentacao_frasco")
+// ponytail: anêmico (@Data + setter), sem subtrair/repor; virar rico + PUT /api/frascos/{id}/estoque quando o slice de estoque abrir
+public class Frascos {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "medicamento_id", nullable = false)
+    private Medicamento medicamento;
+
+    @Column(nullable = false)
+    private Double volumeMg; // Representa v_j (volume do frasco tipo j)
+
+    @Column(nullable = false)
+    private Double custo; // Representa c_j (custo do frasco tipo j)[cite: 1]
+
+    @Column(name = "quantidade_estoque", nullable = false)
+    private Integer quantidadeEstoque; // Representa e_j (estoque disponível)[cite: 1]
+
+    @Column(name = "descricao_tasy")
+    private String descricaoTasy; // Nome da apresentação no Tasy; opcional
+}

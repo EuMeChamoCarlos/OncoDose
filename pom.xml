@@ -8,8 +8,8 @@
 		<version>4.1.1</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>br.edu.ufersa.pw.oncodose</groupId>
-	<artifactId>oncoDoseAPI</artifactId>
+	<groupId>br.edu.ufersa.pw.oncotimize</groupId>
+	<artifactId>oncotimizeAPI</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name/>
 	<description/>
